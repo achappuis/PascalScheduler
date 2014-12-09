@@ -1,0 +1,3 @@
+ifeq ($(GPIO),IFX_GPIO)
+CCFLAGS+=-DIFX_GPIO
+endif

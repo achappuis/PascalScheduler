@@ -1,0 +1,1 @@
+include src/lib/libc/stdio/module.mk
