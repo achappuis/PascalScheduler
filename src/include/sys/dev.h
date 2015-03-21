@@ -69,7 +69,7 @@ enum dev_id {
   DEV_UART,
   DEV_PWM,
   DEV_LCD,
-  
+
   DRIVER_NB
 };
 
@@ -81,11 +81,13 @@ enum dev_id {
  *   dev_type     - What kind of driver is taking care of this vnode.
  *   dev_id       - Which driver is taking care of this vnode.
  *   endpt        - Use for example by I2C or SPI to store peer address.
+ *   data         - Some device data pointer.
  */
 struct vnode {
     enum	dev_type dev_type;
     int		dev_id;
     int		endpt;
+    void* data;
 };
 
 /*
@@ -141,5 +143,4 @@ int dev_ioctl(struct vnode *vnode, uint8_t code, void *data);
 int dev_write(const void * ptr, int size, int count, struct vnode *vnode);
 int dev_read(void * ptr, int size, int count, struct vnode *vnode);
 
-#endif 
-
+#endif
