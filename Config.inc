@@ -1,7 +1,9 @@
-GPIO = IFX_GPIO
-PWM  = IFX_CCU4
+XMCLIB = vendors/XMC_Peripheral_Library_v1.0.0/
 
-I2C       = IFX_USIC
+GPIO = NO_IFX_GPIO_
+PWM  = NO_IFX_CCU4
+
+I2C       = NO_IFX_USIC
 I2C_USIC  = CH0
 
 UART      = IFX_USIC
