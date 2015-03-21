@@ -47,29 +47,29 @@ knowledge of the CeCILL-B license and that you accept its terms.
   If a task call this function, it may sleep for *at least* ms milli-seconds.
 
   Design:
-  <sleep_time> is set to ms and <sleep_flag> to 1. Then the remaining quantum 
-of time for the current task is set to 0, and the task wait for sleep_flag to 
+  <sleep_time> is set to ms and <sleep_flag> to 1. Then the remaining quantum
+of time for the current task is set to 0, and the task wait for sleep_flag to
 be set to 0. The scheduler *should* clear <sleep_flag>.
-  
+
 */
 void
 sys_sleep(long int ms)
 {
   sleep_time = ms;
   sleep_flag = 1;
-  SYST_CVR = 0;
+  SysTick->VAL = 0;
   while (sleep_flag == 1) {
-    _nop;
+    __NOP();
   }
 }
 
 /*
   Function: _sbrk
 
-  A simple implementation of sbrk. 
+  A simple implementation of sbrk.
 
   Design:
-  This sbrk function return ENOMEM if the __heap_end symbol from linker script 
+  This sbrk function return ENOMEM if the __heap_end symbol from linker script
 is lower than the next heap_top address.
 */
 void *
@@ -77,22 +77,22 @@ sys_sbrk(int nbytes)
 {
   extern const int __heap;
   extern const int __heap_end;
-  
+
   static void *heap_top = (void *)&__heap;
   static void *heap_end = (void *)&__heap_end;
   static int c=0;
-  
+
   void *base;
-  
+
   if ((heap_top  + nbytes) > heap_end) {
     errno = ENOMEM;
-    return (void *)-1;    
+    return (void *)-1;
   }
-  
+
   c++;
   base = heap_top;
   heap_top += nbytes;
-  
+
   return base;
 }
 
@@ -149,7 +149,7 @@ sys_write(int file, char *ptr, int len)
       break;
     }
 
-   
+
     return dev_write(ptr, sizeof(char), len, &vnode);
 }
 
@@ -159,6 +159,3 @@ sys_getjiffy(void)
     extern volatile long int jiffy;
     return jiffy;
 }
-
-
-

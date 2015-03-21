@@ -32,10 +32,6 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #include "xmc1100.h"
 
-#define SYSTICK_ENABLE  1
-#define SYSTICK_DISABLE 0
-#define SYSTICK_EXCEPTION 2
-
 /*
   Function: c_init
 
@@ -47,7 +43,8 @@ knowledge of the CeCILL-B license and that you accept its terms.
 */
 void c_init(void)
 {
-    SYST_CSR |= SYSTICK_ENABLE + SYSTICK_EXCEPTION;
-    SYST_RVR = 0x21;//1000Hz
-    SYST_CVR = 1;
+  SysTick->CTRL = 3;
+  if (SysTick_Config (SystemCoreClock / 1000)) { // SysTick 1mSec
+       // Handle Error
+  }
 }

@@ -39,7 +39,7 @@ knowledge of the CeCILL-B license and that you accept its terms.
 /*
   Function: signal_raise
   Assert a signal and return.
-  
+
   Parameters:
   - signal	A uint32_t signal ID.
 
@@ -55,7 +55,7 @@ signal_raise(uint32_t signal)
 /*
   Function: signal_wait
   Wait for a signal. The scheduler is called before the function returns.
-  
+
   Parameters:
   - signal	A uint32_t signal ID.
 
@@ -66,8 +66,8 @@ void
 signal_wait(uint32_t signal)
 {
   signal_flag = signal;
-  SYST_CVR = 0;
+  SysTick->VAL = 0;
   while (signal_flag != 0) {
-    _nop;
+    __NOP();
   }
 }

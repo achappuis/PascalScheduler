@@ -57,7 +57,7 @@ handler_svc()
 
     switch(code) {
     case SVC_NICE:
-        SYST_CVR = 1;
+        SysTick->VAL = 1;
         break;
     }
 }
@@ -112,7 +112,7 @@ handler_hardfault()
 	" mov R1, LR \n"
 	" tst R0, R1 \n"
 	" beq _IS_MSP \n"
-	" mrs R0, PSP \n" 
+	" mrs R0, PSP \n"
 	" ldr r2, unwind_stack_label\n"
 	" bx r2  \n"
 	"_IS_MSP: \n"
@@ -122,10 +122,10 @@ handler_hardfault()
 	" unwind_stack_label: .word unwind_stack\n"
     );
 #endif
-    
+
     P1_OUT |= 0x1;
     for(;;) {
-      __WFI;
+      __WFI();
     }
     return;
 }
