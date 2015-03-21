@@ -47,22 +47,16 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #include "circular_buffer.h"
 
+#include <xmc_gpio.h>
+#include <xmc_uart.h>
+
 extern int init_ok;
 
-#ifdef I2C_MODULE
-extern struct	dev_ops i2c;
-#endif
 #ifdef UART_MODULE
 extern struct	dev_ops uart;
 #endif
-#ifdef PWM_MODULE
-extern struct	dev_ops pwm;
-#endif
-#ifdef LCD_MODULE
-extern struct	dev_ops lcd;
-#endif
 struct 		dev_ops* devices[DRIVER_NB];
- 
+
 enum errno_e errno;
 
 /*
@@ -85,7 +79,7 @@ static void initPorts()
     // So make these push-pull outputs
     P1_IOCR0 = BIT15 + BIT7;
     //P1_OUT = 0x02;
-    
+
     P0_IOCR0 = BIT7;
     P0_OUT = 0x00;
 }
@@ -99,8 +93,8 @@ static void uart_task()
 #endif
     for(;;) {
 #ifdef UART_MODULE
-//        read = scanf("%127s", r);
-            printf("Alive %d!\n\r", read);
+      // read = scanf("%127s", r);
+      printf("Alive %d!\n\r", read);
 	    read++;
 #endif
         P0_OUT ^= 0x1;
@@ -111,97 +105,25 @@ static void uart_task()
 
 static void mess_task()
 {
-  
+
 #ifdef UART_MODULE
     char c;
 #endif
     for(;;) {
 #ifdef UART_MODULE
-	c = getchar();
+        c = getchar();
         printf("%c", c);
 #endif
     }
 }
 
-
-static void i2C_task()
-{
-#ifdef I2C_MODULE
-#define IIC_ADDRESS (0x40)
-    struct vnode node;
-    uint32_t c = 0;
-    uint8_t val[2];
-    uint8_t r = 0;
-    uint8_t push = 0;
-    uint8_t tab[3];
-    tab[0] = 1;
-    tab[1] = 2;
-    
-    val[0] = 0;
-    val[1] = 3; 
-    
-    node.dev_type	= I2C;
-    node.dev_id		= DEV_I2C;
-    int add = IIC_ADDRESS;
-    dev_ioctl(&node, I2C_IOCTL_SET_PEER, &add);
-    dev_open(&node);    
-#endif
-    
-    for(;;) {
-#ifdef I2C_MODULE
-	dev_read(&r, sizeof(r), 1, &node);
-	if(r & 0x8) {
-	  push ^= 0x4;
-	}
-	val[1] = tab[c] | push;
-	dev_write(&val, sizeof(*val), 2, &node);
-	c++;
-	if (c == 2)
-	  c = 0;
-#else
-        P1_OUT ^= 0x2;
-#endif
-	
-        sys_sleep(500);
-	//signal_wait(TASK_SYNCHONISATION(1));
-    }
-}
-
-#if 0
-static void PWM_task()
-{
-  int i = 0;
-  int dir = 1;
-#ifdef PWM_MODULE
-    struct vnode pwm_node;
-    pwm_node.dev_type	= PWM;
-    pwm_node.dev_id		= DEV_PWM;
-    open(&pwm_node);
-#endif
-  
-    for(;;) {
-#ifdef PWM_MODULE
-	ioctl(&pwm_node, PWM_IOCTL_SET_DUTY, &i);
-	ioctl(&pwm_node, PWM_IOCTL_SET_UPDATE, &i);
-#endif
-	i+=dir;
-	if(i>=100 || i<=0) {
-	  dir = -dir;
-	}
-	
-        sleep(50);
-    }
-
-}
-#endif
-
 static void fatal()
 {
-    _disable_interrupts;
+    __disable_irq();
     P1_OUT |= 0x1;
-    __WFI;
+    __WFI();
     for(;;) {
-      _nop;
+      __NOP();
     }
 }
 
@@ -213,48 +135,37 @@ static void fatal()
  */
 void _main()
 {
-#ifdef I2C_MODULE
-    driver_map(DEV_I2C, &i2c);
-#endif    
+  /*
+   * Some drivers rely on the value of SystemCoreClock
+   * SystemCoreClockUpdate() update this value.
+   */
+  SystemCoreClockUpdate();
+
 #ifdef UART_MODULE
     driver_map(DEV_UART, &uart);
     struct vnode uart_node;
     uart_node.dev_type	= UART;
     uart_node.dev_id	= DEV_UART;
+    XMC_UART_CH_CONFIG_t uart_config1;
+    uart_node.data	= &uart_config1;
     dev_open(&uart_node);
-#endif    
-#ifdef PWM_MODULE
-    driver_map(DEV_PWM, &pwm);
-#endif    
-#ifdef LCD_MODULE
-    driver_map(DEV_LCD, &lcd);
-    struct vnode lcd_node;
-    lcd_node.dev_type	= LCD;
-    lcd_node.dev_id	= DEV_LCD;
-    dev_open(&lcd_node);
 #endif
 
     if (scheduler_init() != 0)
         fatal();
     initPorts();
-    
+
     if (task_register(uart_task) != 0)
         fatal();
     if (task_register(mess_task) != 0)
         fatal();
-    if (task_register(i2C_task) != 0)
-        fatal();
-#if 0
-    if (task_register(PWM_task) != 0)
-        fatal();
-#endif
-   
+
     init_ok = 1;
-    _enable_interrupts;
+    __enable_irq();
 
     for(;;) {
-      //__WFI;
-      _nop;
+      __WFI();
+      __NOP();
     }
 }
 
