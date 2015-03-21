@@ -111,10 +111,18 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 // 19200 bd @8MHz
 #ifdef UART_19200
-  #define FDR_STEP 0x200
-  #define BRG_PDIV 22
-  #define BRG_DCTQ 8
-  #define BRG_PCTQ 0
+  #define FDR_STEP 512UL
+  #define BRG_PDIV 22UL
+  #define BRG_DCTQ 8UL
+  #define BRG_PCTQ 0UL
+#endif
+
+// 115200 bd @8MHz
+#ifdef UART_115200
+  #define FDR_STEP 590UL
+  #define BRG_PDIV 3UL
+  #define BRG_DCTQ 9UL
+  #define BRG_PCTQ 0UL
 #endif
 
 

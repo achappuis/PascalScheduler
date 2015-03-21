@@ -35,74 +35,57 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include "../gpio/gpio.h"
 #include "xmc1100.h"
 
+#include <xmc_gpio.h>
+#include <xmc_uart.h>
+
 #define __UNUSED(x) (void)(x)
 
 uint32_t
 _usic_uart_send(uint32_t uwData)
 {
-    if (TRBSR & 0x1000) { // TFIFO Full
-	return 0;
-    }
-    IN[0] = uwData;
-    return 1;
-} 
+  XMC_UART_CH_Transmit(XMC_UART0_CH1, (uint16_t)uwData);
+  return 0;
+}
 
 uint32_t
 _usic_uart_read()
 {
-    if (TRBSR & 0x8) { // RFIFO Empty
-	return 0;
-    }
-    while(TRBSR & 0x20);
-    return (uint32_t)(OUTR & 0xFFFF);
+  //   if (TRBSR & 0x8) { // RFIFO Empty
+	// return 0;
+  //   }
+  //   while(TRBSR & 0x20);
+  //   return (uint32_t)(OUTR & 0xFFFF);
+  return (uint32_t)XMC_UART_CH_GetReceivedData(XMC_UART0_CH1);
 }
 
 int
 usic_uart_open(struct vnode *vnode)
 {
-    __UNUSED(vnode);
+  XMC_UART_CH_CONFIG_t *data = (XMC_UART_CH_CONFIG_t *)vnode->data;
 
+  data->baudrate = 9600;
+  data->data_bits = 8U;
+  data->parity_mode = XMC_USIC_CH_PARITY_MODE_NONE;
+  data->stop_bits = 1U;
 
-    
-    KSCFG = KSCFG_MODULE_EN; // Enable module
-    CCR = 0;
-    
-        // P0.7 -> Push Pull ALT7 | P0.6 -> input
-    GPIO_PIN_MUX(RX_PORT, GPIO_INPUT_NO , RX_PIN); 
-    GPIO_PIN_MUX(TX_PORT, GPIO_OUTPUT_PP | TX_ALT , TX_PIN);  
-    
-    DX0CR = DXnCR_DXnC; // Input Stage Rx  -> P0.6
-    DX1CR = DXnCR_DXnA; // Intput Stage Tx -> P0.7
+  XMC_UART_CH_Init(XMC_UART0_CH1, data);
+  XMC_UART_CH_SetInputSource(XMC_UART0_CH1, XMC_UART_CH_INPUT_RXD, USIC0_C1_DX0_P0_6);
 
-    // Baud Rate
-    BRG = (BRG_PCTQ << 8) + (BRG_DCTQ << 10) + (BRG_PDIV << 16);
-    FDR = FDR_DIV_FRAC + FDR_STEP;
-    
-    SCTR = SCTR_PASSIVE_DATA_LVL_1 |
-	   SCTR_ENABLE_TX |
-	   SCTR_FRAME_LEN(7) |
-	   SCTR_WORD_LEN(7);
-	   
-    TCSR = 0x00000500;
-    
-    PCR = (0x2 << 16) | PCR_3_SAMPLES | PCR_1_STOP | PCR_SAMPLE_POINT(6);
-    PSR = 0x00002000;
+  /* Start UART channel */
+  XMC_UART_CH_Start(XMC_UART0_CH1);
 
-    // Enable transmit and receive FIFO
-    TRBSCR = 0x0000C707; // Clear events and Flush buffers
-    RBCTR  = 0x06000000; // Rx Size = 64
-    TBCTR  = 0x06000000; // Tx Size = 64
+  /* Configure pins */
+  XMC_GPIO_SetMode(P0_7, XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7);
+  XMC_GPIO_SetMode(P0_6, XMC_GPIO_MODE_INPUT_TRISTATE);
 
-    //CCR.MODE = 0x0100;
-    CCR = 0x2;
-    
-    return 0;
+  return 0;
 }
 
 int
 usic_uart_close(struct vnode *vnode)
 {
     __UNUSED(vnode);
+    XMC_UART_CH_Stop(XMC_UART0_CH1);
     return 0;
 }
 
@@ -110,16 +93,15 @@ int
 usic_uart_write(struct vnode *vnode, struct uio *uio)
 {
     __UNUSED(vnode);
-    __UNUSED(uio);
     uint32_t *ptr;
     int low_add;
 
 #define	SEND_BYTE(a)	  _usic_uart_send(((*(ptr)) & (0xFF << 8*(a))) >> 8*(a) ); uio->uio_resid--
-    
+
     if (uio->uio_rw != UIO_WRITE) {
 	return -1;
     }
-     
+
     // iov_base should be aligned
     ptr = uio->uio_iov->iov_base;
     low_add = (int)((uint32_t)ptr & 0x3); // lowest 2 bits
@@ -143,8 +125,8 @@ usic_uart_write(struct vnode *vnode, struct uio *uio)
     if (uio->uio_resid == 0) {
 	return 0;
     }
-    
-    for(; uio->uio_resid > 0; ptr++) {	
+
+    for(; uio->uio_resid > 0; ptr++) {
 	SEND_BYTE(0);
 	if(uio->uio_resid > 0) { SEND_BYTE(1); }
 	if(uio->uio_resid > 0) { SEND_BYTE(2); }
@@ -158,7 +140,6 @@ int
 usic_uart_read(struct vnode *vnode, struct uio *uio)
 {
     __UNUSED(vnode);
-    __UNUSED(uio);
     uint32_t *ptr;
     int low_add;
     int offset;
@@ -170,11 +151,11 @@ usic_uart_read(struct vnode *vnode, struct uio *uio)
 	if (ans==0) { return -1; }\
 	CLEAR_ANS(__a);\
 	WRITE_ANS(__a);
-    
+
     if (uio->uio_rw != UIO_READ) {
 	return -1;
     }
-    
+
     // iov_base should be aligned
     ptr = uio->uio_iov->iov_base;
     offset = 0;
@@ -199,7 +180,7 @@ usic_uart_read(struct vnode *vnode, struct uio *uio)
     if (uio->uio_resid == 0) {
 	return 0;
     }
-    
+
     for(; uio->uio_resid > 0;uio->uio_resid--, ptr++) {
 	READ_INNER(0);
 	if(uio->uio_resid > 0) { READ_INNER(1); }
@@ -216,13 +197,8 @@ usic_uart_ioctl(struct vnode *vnode, uint8_t code, void *data)
     __UNUSED(vnode);
     __UNUSED(code);
     __UNUSED(data);
-    
-//     switch (code) {
-//     case UART_IOCTL_SET_BAUD:
-// 	break;
-//     }
-    
+
     return 0;
-} 
+}
 
 struct dev_ops uart = { usic_uart_open, usic_uart_close, usic_uart_read, usic_uart_write, usic_uart_ioctl };
