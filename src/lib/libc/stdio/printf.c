@@ -30,10 +30,11 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL-B license and that you accept its terms.
 */
 #include <stdarg.h>
+#include <string.h>
 #include "syscall.h"
 
 /*
- * %[flags][width][length]specifier 
+ * %[flags][width][length]specifier
  */
 
 #define FMT_FLAG_PLUS	1
@@ -65,27 +66,27 @@ fmt_flags(struct s_fmt *fmt)
 {
     switch (*(fmt->p)) {
     case '+':
-	fmt->flags += FMT_FLAG_PLUS;
+	fmt->flags |= FMT_FLAG_PLUS;
 	fmt->p++;
 	break;
     case '-':
-	fmt->flags += FMT_FLAG_MINUS;
+	fmt->flags |= FMT_FLAG_MINUS;
 	fmt->p++;
 	break;
     case ' ':
-	fmt->flags += FMT_FLAG_SPACE;
+	fmt->flags |= FMT_FLAG_SPACE;
 	fmt->p++;
 	break;
     case '#':
-	fmt->flags += FMT_FLAG_SHARP;
+	fmt->flags |= FMT_FLAG_SHARP;
 	fmt->p++;
 	break;
     case '0':
-	fmt->flags += FMT_FLAG_ZERO;
+	fmt->flags |= FMT_FLAG_ZERO;
 	fmt->p++;
 	break;
     }
-    
+
     return;
 }
 
@@ -110,7 +111,7 @@ fmt_width(struct s_fmt *fmt)
 	}
 	fmt->p++;
     }
-    
+
     return;
 }
 
@@ -121,20 +122,20 @@ fmt_length(struct s_fmt *fmt)
 	fmt->p++;
 	if (*(fmt->p) == 'h') {
 	    fmt->p++;
-	    fmt->length += FMT_LEN_HH;
+	    fmt->length |= FMT_LEN_HH;
 	} else {
-	    fmt->length += FMT_LEN_H;
+	    fmt->length |= FMT_LEN_H;
 	}
     } else if (*(fmt->p) == 'l') {
 	fmt->p++;
 	if (*(fmt->p) == 'l') {
 	    fmt->p++;
-	    fmt->length += FMT_LEN_LL;
+	    fmt->length |= FMT_LEN_LL;
 	} else {
-	    fmt->length += FMT_LEN_L;
+	    fmt->length |= FMT_LEN_L;
 	}
     }
-    
+
     return;
 }
 
@@ -145,22 +146,22 @@ fmt_specifier(struct s_fmt *fmt)
     case 'i':
     case 'd':
 	fmt->p++;
-	fmt->specifier += FMT_SPEC_I;
+	fmt->specifier |= FMT_SPEC_I;
 	break;
     case 'u':
 	fmt->p++;
-	fmt->specifier += FMT_SPEC_U;
+	fmt->specifier |= FMT_SPEC_U;
 	break;
     case 'c':
 	fmt->p++;
-	fmt->specifier += FMT_SPEC_C;
+	fmt->specifier |= FMT_SPEC_C;
 	break;
     case 's':
 	fmt->p++;
-	fmt->specifier += FMT_SPEC_S;
+	fmt->specifier |= FMT_SPEC_S;
 	break;
     }
-    
+
     return;
 }
 
@@ -201,49 +202,58 @@ cnprintf(void(*cb)(char), int size,char *fmt, va_list va)
     struct s_fmt s_fmt = {.p = p, .flags = 0, .width = 0, .length = 0, .specifier = 0};
 
     while (*p != '\0' && (p-fmt) < size) {
-	if (*p != '%') {
-	    cb(*p);
-	    p++;
-	} else {
-	    s_fmt.p = ++p;
-	    fmt_flags    (&s_fmt);
-	    fmt_width    (&s_fmt);
-	    fmt_length   (&s_fmt);
-	    fmt_specifier(&s_fmt);
-	    p = s_fmt.p;
-	    switch (s_fmt.specifier) {
-	      case (FMT_SPEC_I):
-		  if (s_fmt.length <= FMT_LEN_H)
-		      i2a(va_arg(va, int), 10, bf);
-		  else if (s_fmt.length == FMT_LEN_L)
-		      i2a(va_arg(va, long int), 10, bf);
-		  else if (s_fmt.length == FMT_LEN_LL) {
-		      bf[0] = 'N';bf[1] = 'a';bf[2] = 'N';bf[3] = '\0';}
-		  break;
-	      case (FMT_SPEC_U):
-		  if (s_fmt.length <= FMT_LEN_H)
-		      ui2a(va_arg(va, unsigned int), 10, bf);
-		  else if (s_fmt.length == FMT_LEN_L)
-		      ui2a(va_arg(va, unsigned long int), 10, bf);
-		  else if (s_fmt.length == FMT_LEN_LL) {
-		      bf[0] = 'N';bf[1] = 'a';bf[2] = 'N';bf[3] = '\0';}
-		  break;
-	      case (FMT_SPEC_C):
-		  bf[0] = va_arg(va, int);
-		  bf[1] = '\0';
-		  break;
-	      case (FMT_SPEC_S):
-		  bf[0] = 'N';bf[1] = 'a';bf[2] = 'S';bf[3] = '\0';
-		  break;
-	    }
-	    char *b = bf;
-	    while (*b != '\0') {
-		cb(*b);
-		b++;
-	    }
-	}
+        if (*p != '%') {
+            cb(*p);
+            p++;
+        } else {
+            s_fmt.flags = 0;
+            s_fmt.width = 0;
+            s_fmt.length = 0;
+            s_fmt.specifier = 0;
+            s_fmt.p = ++p;
+            fmt_flags    (&s_fmt);
+            fmt_width    (&s_fmt);
+            fmt_length   (&s_fmt);
+            fmt_specifier(&s_fmt);
+            p = s_fmt.p;
+            switch (s_fmt.specifier) {
+                case (FMT_SPEC_I):
+                    if (s_fmt.length <= FMT_LEN_H)
+                        i2a(va_arg(va, int), 10, bf);
+                    else if (s_fmt.length == FMT_LEN_L)
+                        i2a(va_arg(va, long int), 10, bf);
+                    else if (s_fmt.length == FMT_LEN_LL) {
+                        strcpy(bf, "NaN");}
+                    break;
+                case (FMT_SPEC_U):
+                    if (s_fmt.length <= FMT_LEN_H)
+                        ui2a(va_arg(va, unsigned int), 10, bf);
+                    else if (s_fmt.length == FMT_LEN_L)
+                        ui2a(va_arg(va, unsigned long int), 10, bf);
+                    else if (s_fmt.length == FMT_LEN_LL) {
+                        strcpy(bf, "NaN");}
+                    break;
+                case (FMT_SPEC_C):
+                    bf[0] = va_arg(va, int);
+                    bf[1] = '\0';
+                    break;
+                case (FMT_SPEC_S):
+                    bf[0] = '\0';
+                    char *bp = va_arg(va, char*);
+                    while (*bp != '\0') {
+                        cb(*bp);
+                        bp++;
+                    }
+                    break;
+            }
+            char *b = bf;
+            while (*b != '\0') {
+                cb(*b);
+                b++;
+            }
+        }
     }
-    
+
     return 0;
 }
 
@@ -260,6 +270,6 @@ printf(char *fmt, ...)
     va_start(va,fmt);
     int r = cnprintf(cb_printf, 128,fmt, va);
     va_end(va);
-    
+
     return r;
 }
