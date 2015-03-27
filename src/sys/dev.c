@@ -110,7 +110,6 @@ dev_ioctl(struct vnode *vnode, uint8_t code, void *data)
 
   Parameters:
     ptr    - A buffer to write data from.
-    size   - Size of each element of the buffer
     count  - Number of elements in the buffer
     vnode  - Node to write to.
 
@@ -124,9 +123,8 @@ dev_ioctl(struct vnode *vnode, uint8_t code, void *data)
     - <fread>
 */
 int
-dev_write(const void * ptr, int size, int count, struct vnode *vnode )
+dev_write(const void * ptr, size_t count, struct vnode *vnode )
 {
-  __UNUSED(size);
   struct iovec iov;
   struct uio uio;
 
@@ -147,7 +145,6 @@ dev_write(const void * ptr, int size, int count, struct vnode *vnode )
 
   Parameters:
     ptr    - A buffer to write data to.
-    size   - Size of each element of the buffer
     count  - Number of elements to read.
     vnode  - Node to read from.
 
@@ -161,9 +158,8 @@ dev_write(const void * ptr, int size, int count, struct vnode *vnode )
     - <fwrite>
 */
 int
-dev_read(void * ptr, int size, int count, struct vnode *vnode)
+dev_read(void * ptr, size_t count, struct vnode *vnode)
 {
-  __UNUSED(size);
   struct iovec iov;
   struct uio uio;
 

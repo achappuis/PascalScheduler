@@ -34,6 +34,7 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #define SYS_DEV_H
 
 #include <stdint.h>
+#include <types.h>
 
 #define driver_map(id, table) devices[id] = table
 
@@ -154,8 +155,8 @@ struct dev_ops {
 
 int dev_open(struct vnode *vnode);
 int dev_ioctl(struct vnode *vnode, uint8_t code, void *data);
-int dev_write(const void * ptr, int size, int count, struct vnode *vnode);
-int dev_read(void * ptr, int size, int count, struct vnode *vnode);
+int dev_write(const void * ptr, size_t count, struct vnode *vnode);
+int dev_read(void * ptr, size_t count, struct vnode *vnode);
 int dev_seek(int offset, enum seek_whence whence, struct vnode *vnode);
 
 #endif
