@@ -46,14 +46,24 @@ knowledge of the CeCILL-B license and that you accept its terms.
 enum uio_rw   { UIO_READ, UIO_WRITE };
 
 /*
+ * Enum: seek_whence
+ *
+ * SEEK_SET   - The offset will be from the beginning.
+ * SEEK_CUR   - The offset will be from the current offset.
+ * SEEK_END   - The offset will be from the end.
+ */
+enum seek_whence   { SEEK_SET, SEEK_CUR, SEEK_END };
+
+/*
  * Enum: dev_type
  *
  * I2C   - I2C Device.
  * SPI   - SPI Device.
  * UART  - UART Device.
  * PWM   - PWM Device.
+ * MMC   - SD/MMC Device.
  */
-enum dev_type { I2C, SPI, UART, PWM, LCD };
+enum dev_type { I2C, SPI, UART, PWM, LCD, MMC };
 
 /*
  * Enum: dev_id
@@ -62,6 +72,7 @@ enum dev_type { I2C, SPI, UART, PWM, LCD };
  * DEV_SPI   - SPI Device.
  * DEV_UART  - UART Device.
  * DEV_PWM   - PWM Device.
+ * DEV_MMC   - SD/MMC Device.
  */
 enum dev_id {
   DEV_I2C = 0,
@@ -69,6 +80,7 @@ enum dev_id {
   DEV_UART,
   DEV_PWM,
   DEV_LCD,
+  DEV_MMC,
 
   DRIVER_NB
 };
@@ -81,12 +93,14 @@ enum dev_id {
  *   dev_type     - What kind of driver is taking care of this vnode.
  *   dev_id       - Which driver is taking care of this vnode.
  *   endpt        - Use for example by I2C or SPI to store peer address.
+ *   offset       - Used if device is seekable.
  *   data         - Some device data pointer.
  */
 struct vnode {
     enum	dev_type dev_type;
     int		dev_id;
     int		endpt;
+    int		offset;
     void* data;
 };
 
@@ -98,7 +112,7 @@ struct vnode {
  *   iov_len      - _
  */
 struct iovec {
-    uint32_t	*iov_base;
+    void	*iov_base;
     int		iov_len;
 };
 
@@ -142,5 +156,6 @@ int dev_open(struct vnode *vnode);
 int dev_ioctl(struct vnode *vnode, uint8_t code, void *data);
 int dev_write(const void * ptr, int size, int count, struct vnode *vnode);
 int dev_read(void * ptr, int size, int count, struct vnode *vnode);
+int dev_seek(int offset, enum seek_whence whence, struct vnode *vnode);
 
 #endif

@@ -47,15 +47,10 @@ _usic_uart_send(uint32_t uwData)
   return 0;
 }
 
-uint32_t
+uint8_t
 _usic_uart_read()
 {
-  //   if (TRBSR & 0x8) { // RFIFO Empty
-	// return 0;
-  //   }
-  //   while(TRBSR & 0x20);
-  //   return (uint32_t)(OUTR & 0xFFFF);
-  return (uint32_t)XMC_UART_CH_GetReceivedData(XMC_UART0_CH1);
+  return (uint8_t)XMC_UART_CH_GetReceivedData(XMC_UART0_CH1);
 }
 
 int
@@ -63,7 +58,7 @@ usic_uart_open(struct vnode *vnode)
 {
   XMC_UART_CH_CONFIG_t *data = (XMC_UART_CH_CONFIG_t *)vnode->data;
 
-  data->baudrate = 9600;
+  data->baudrate = 115200;
   data->data_bits = 8U;
   data->parity_mode = XMC_USIC_CH_PARITY_MODE_NONE;
   data->stop_bits = 1U;
@@ -93,44 +88,11 @@ int
 usic_uart_write(struct vnode *vnode, struct uio *uio)
 {
     __UNUSED(vnode);
-    uint32_t *ptr;
-    int low_add;
+    uint8_t *ptr;
 
-#define	SEND_BYTE(a)	  _usic_uart_send(((*(ptr)) & (0xFF << 8*(a))) >> 8*(a) ); uio->uio_resid--
-
-    if (uio->uio_rw != UIO_WRITE) {
-	return -1;
-    }
-
-    // iov_base should be aligned
     ptr = uio->uio_iov->iov_base;
-    low_add = (int)((uint32_t)ptr & 0x3); // lowest 2 bits
-    ptr = (uint32_t*)((uint32_t)ptr & (~0x3));
-    switch(low_add) {
-    case 0:		// Aligned
-	break;
-    case 1:
-	SEND_BYTE(1);
-	if(uio->uio_resid > 0) { SEND_BYTE(2); }
-	if(uio->uio_resid > 0) { SEND_BYTE(3); }
-	break;
-    case 2:
-	SEND_BYTE(2);
-	if(uio->uio_resid > 0) { SEND_BYTE(3); }
-	break;
-    case 3:
-	SEND_BYTE(3);
-	break;
-    }
-    if (uio->uio_resid == 0) {
-	return 0;
-    }
-
-    for(; uio->uio_resid > 0; ptr++) {
-	SEND_BYTE(0);
-	if(uio->uio_resid > 0) { SEND_BYTE(1); }
-	if(uio->uio_resid > 0) { SEND_BYTE(2); }
-	if(uio->uio_resid > 0) { SEND_BYTE(3); }
+    for(; uio->uio_resid > 0; uio->uio_resid--, ptr++) {
+      _usic_uart_send(*ptr);
     }
 
     return 0;
@@ -140,52 +102,16 @@ int
 usic_uart_read(struct vnode *vnode, struct uio *uio)
 {
     __UNUSED(vnode);
-    uint32_t *ptr;
-    int low_add;
-    int offset;
-    uint32_t ans;
+    uint8_t *ptr;
+    uint8_t ans;
 
-#define	CLEAR_ANS(__a) *ptr &= ~(0xFF << 8*(__a))
-#define	WRITE_ANS(__a) *ptr |= ans << 8*(__a);offset++;offset%=4; uio->uio_resid--
-#define READ_INNER(__a) ans = _usic_uart_read();\
-	if (ans==0) { return -1; }\
-	CLEAR_ANS(__a);\
-	WRITE_ANS(__a);
-
-    if (uio->uio_rw != UIO_READ) {
-	return -1;
-    }
-
-    // iov_base should be aligned
     ptr = uio->uio_iov->iov_base;
-    offset = 0;
-    low_add = (int)((uint32_t)ptr & 0x3); // lowest 2 bits
-    ptr = (uint32_t*)((uint32_t)ptr & (~0x3));
-    switch(low_add) {
-    case 0:		// Aligned
-	break;
-    case 1:
-	READ_INNER(1);
-	if(uio->uio_resid > 0) { READ_INNER(2); }
-	if(uio->uio_resid > 0) { READ_INNER(3); }
-	break;
-    case 2:
-	READ_INNER(2);
-	if(uio->uio_resid > 0) { READ_INNER(3); }
-	break;
-    case 3:
-	READ_INNER(3);
-	break;
-    }
-    if (uio->uio_resid == 0) {
-	return 0;
-    }
+    for(; uio->uio_resid > 0; uio->uio_resid--, ptr++) {
+      do {
+        ans = _usic_uart_read();
+      } while(!ans);
 
-    for(; uio->uio_resid > 0;uio->uio_resid--, ptr++) {
-	READ_INNER(0);
-	if(uio->uio_resid > 0) { READ_INNER(1); }
-	if(uio->uio_resid > 0) { READ_INNER(2); }
-	if(uio->uio_resid > 0) { READ_INNER(3); }
+      *ptr = ans;
     }
 
     return 0;

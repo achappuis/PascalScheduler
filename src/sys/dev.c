@@ -109,7 +109,7 @@ dev_ioctl(struct vnode *vnode, uint8_t code, void *data)
   Function: dev_write
 
   Parameters:
-    ptr    - A buffer to write data from. 
+    ptr    - A buffer to write data from.
     size   - Size of each element of the buffer
     count  - Number of elements in the buffer
     vnode  - Node to write to.
@@ -129,16 +129,16 @@ dev_write(const void * ptr, int size, int count, struct vnode *vnode )
   __UNUSED(size);
   struct iovec iov;
   struct uio uio;
-  
+
   iov.iov_base = __UNCONST(ptr);
   iov.iov_len = count;
-  
+
   uio.uio_resid = count;
   uio.uio_iov = &iov;
   uio.uio_rw = UIO_WRITE;
-  
+
   devices[vnode->dev_id]->d_write(vnode, &uio);
-  
+
   return (count - uio.uio_resid);
 }
 
@@ -146,7 +146,7 @@ dev_write(const void * ptr, int size, int count, struct vnode *vnode )
   Function: dev_read
 
   Parameters:
-    ptr    - A buffer to write data to. 
+    ptr    - A buffer to write data to.
     size   - Size of each element of the buffer
     count  - Number of elements to read.
     vnode  - Node to read from.
@@ -166,17 +166,61 @@ dev_read(void * ptr, int size, int count, struct vnode *vnode)
   __UNUSED(size);
   struct iovec iov;
   struct uio uio;
-  
+
   iov.iov_base = __UNCONST(ptr);
   iov.iov_len = 0;
-  
+
   uio.uio_resid = count;
   uio.uio_iov = &iov;
   uio.uio_rw = UIO_READ;
-  
-  while (uio.uio_resid != 0) {
+
+  while (uio.uio_resid > 0) {
       iov.iov_base = __UNCONST(ptr) + (count - uio.uio_resid);
       devices[vnode->dev_id]->d_read(vnode, &uio);
   }
   return (count - uio.uio_resid);
+}
+
+/*
+  Function: dev_seek
+
+  For now, it is not possible to seek from the end.
+  No proper test is made to check if the offset is seekable, an issues will
+  probably be raised during read/write operation. In the futur, adding a seek
+  callback may be a solution to prevent from this.
+
+  Parameters:
+    offset - Offset
+    whence - <seek_whence>
+    vnode  - Node to read from.
+
+  Returns:
+    On success, the new offset from the beginning of the file.
+    On error -1.
+
+  See Also:
+    - <open>
+    - <close>
+    - <ioctl>
+    - <fwrite>
+*/
+int
+dev_seek(int offset, enum seek_whence whence, struct vnode *vnode)
+{
+    switch(whence) {
+    case SEEK_SET:
+        if (offset < 0)
+            return -1;
+        vnode->offset = offset;
+        break;
+    case SEEK_CUR:
+        if (offset < 0 && (-offset > vnode->offset))
+            return -1;
+        vnode->offset += offset;
+        break;
+    default:
+        return -1;
+    }
+
+    return vnode->offset;
 }
