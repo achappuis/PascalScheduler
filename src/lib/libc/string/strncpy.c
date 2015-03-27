@@ -30,10 +30,12 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL-B license and that you accept its terms.
 */
 
+#include <types.h>
+
 char *
-strncpy ( char * destination, const char * source, int num )
+strncpy ( char * destination, const char * source, size_t num )
 {
-  int i = 0;
+  unsigned int i = 0;
   char *dp = destination;
   const char *ds = source;
 
