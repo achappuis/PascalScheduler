@@ -75,7 +75,7 @@ swap_words(uint8_t *data)
 }
 
 static void
-mmc_send(uint8_t *buf, uint8_t size) {
+mmc_send(uint8_t *buf, int size) {
     dev_write(buf, size, &spi_node);
 }
 
@@ -175,7 +175,7 @@ mmc_read_sector(struct mmc_info *mmc_info, uint8_t *buf, int sector) {
         return MMC_ERROR;
 
     mmc_read(buf, mmc_info->read_block_size); // sector
-    mmc_read(crc, 2);   // CRC
+    // mmc_read(crc, 2);   // CRC
 
     return MMC_OK;
 }
@@ -186,12 +186,12 @@ mmc_write_sector(struct mmc_info *mmc_info, uint8_t *buf, int sector) {
     head[0] = 0xFF;
     head[1] = 0xFE;
 
-    mmc_send_cmd(MMC_CMD24, sector * mmc_info->csd.write_bl_len);
+    mmc_send_cmd(MMC_CMD24, sector * mmc_info->write_block_size);
     if (mmc_spi_read_status() != 0)
         return MMC_ERROR;
 
     mmc_send(head, 2);
-    mmc_send(buf, mmc_info->csd.write_bl_len);
+    mmc_send(buf, mmc_info->write_block_size);
 
     return MMC_OK;
 }
