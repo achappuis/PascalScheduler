@@ -256,7 +256,7 @@ mmc_read_csd(struct mmc_info *mmc_info)
 {
     uint32_t buf[5]; //16 byte + 2 CRC byte
     uint32_t i;
-    
+
     mmc_send_cmd(MMC_CMD09, 0);
     mmc_spi_wait_start_block(1);
     mmc_read((uint8_t*)buf, 18);
@@ -280,21 +280,26 @@ static int
 mmc_read_cid(struct mmc_info *mmc_info)
 {
     struct mmc_cid *mmc_cid = &(mmc_info->cid);
-    uint8_t buf[18]; //16 byte + 2 CRC byte
+    uint32_t buf[5]; //16 byte + 2 CRC byte
+    uint32_t i;
 
     mmc_send_cmd(MMC_CMD10, 0);
     mmc_spi_wait_start_block(1);
-    mmc_read(buf, 18);
-    if (mmc_crc7(buf, 15) != buf[15]) return MMC_ERROR;
+    mmc_read((uint8_t*)buf, 18);
+    if (mmc_crc7((uint8_t*)buf, 15) != ((uint8_t*)buf)[15]) return MMC_ERROR;
 
-    mmc_cid->mid = buf[0];
-    strncpy(mmc_cid->oid, (char *)&buf[1], 2);mmc_cid->oid[2]= '\0';
-    strncpy(mmc_cid->pnm, (char *)&buf[3], 5);mmc_cid->pnm[5]= '\0';
-    mmc_cid->prv = buf[8];
-    mmc_cid->psn = buf[9] << 24 |  buf[10] << 16 |  buf[11] << 8 |  buf[12];
-    mmc_cid->mdt_year = ((buf[14] & 0xF0) > 4) + (buf[13] & 0x0F) + 2000;
-    mmc_cid->mdt_month = (buf[14] & 0x0F);
-    mmc_cid->crc7 = buf[15];
+    strncpy(mmc_cid->oid, (char *)&((uint8_t*)buf)[1], 2);mmc_cid->oid[2]= '\0';
+    strncpy(mmc_cid->pnm, (char *)&((uint8_t*)buf)[3], 5);mmc_cid->pnm[5]= '\0';
+
+    for (i = 0;i < 4;i++)
+        swap_words((uint8_t*)&buf[i]);
+
+    mmc_cid->mid = UNSTUFF_BITS(buf,120,8);
+    mmc_cid->prv = UNSTUFF_BITS(buf,56,8);
+    mmc_cid->psn = UNSTUFF_BITS(buf,24,32);;
+    mmc_cid->mdt_year = UNSTUFF_BITS(buf,12,8); + 2000;
+    mmc_cid->mdt_month = UNSTUFF_BITS(buf,8,4);
+    mmc_cid->crc7 = UNSTUFF_BITS(buf,1,7);
 
     return MMC_OK;
 }
