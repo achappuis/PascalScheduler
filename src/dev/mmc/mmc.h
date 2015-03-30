@@ -43,6 +43,22 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #define MMC_ERROR  -1
 #define MMC_OK      2
 
+
+// From linux mmc.c
+#define UNSTUFF_BITS(resp,start,size)                                   \
+         ({                                                              \
+                 const int __size = size;                                \
+                 const uint32_t __mask = (__size < 32 ? 1 << __size : 0) - 1; \
+                 const int __off = 3 - ((start) / 32);                   \
+                 const int __shft = (start) & 31;                        \
+                 uint32_t __res;                                              \
+                                                                         \
+                 __res = resp[__off] >> __shft;                          \
+                 if (__size + __shft > 32)                               \
+                         __res |= resp[__off-1] << ((32 - __shft) % 32); \
+                 __res & __mask;                                         \
+         })
+
 enum mmc_voltage {
   MMC_VOLTAGE_UNDEF = (0x0 << 8),
   MMC_VOLTAGE_27_36 = (0x1 << 8),
@@ -72,6 +88,7 @@ enum mmc_cmd {
   MMC_CMD09 = MMC_CMD(9),
   MMC_CMD10 = MMC_CMD(10),
   MMC_CMD17 = MMC_CMD(17),
+  MMC_CMD24 = MMC_CMD(24),
   MMC_CMD41 = MMC_CMD(41),
   MMC_CMD58 = MMC_CMD(58)
 };
@@ -90,7 +107,7 @@ enum mmc_flag {
   MMC_DISABLED = 1,
   MMC_V1       = 2,
   MMC_V2       = 4,
-  MMC_SDHC     = 8
+  SD_SDHC     = 8
 };
 
 #define MAX_BLOCK_LENGTH 512
@@ -108,9 +125,10 @@ struct mmc_cid {
 
 struct mmc_csd {
   uint32_t c_size;
-  uint32_t c_mult;
-  uint32_t read_bl_len;
-  uint32_t write_bl_len;
+  uint8_t c_mult;
+  uint8_t read_bl_len;
+  uint8_t write_bl_len;
+  uint8_t c_structure;
 };
 
 struct mmc_info {
@@ -118,6 +136,8 @@ struct mmc_info {
   struct mmc_cid cid;
   uint32_t spi_channel;
   uint32_t mem_size;
+  uint32_t read_block_size;
+  uint32_t write_block_size;
   char flags;
 };
 
