@@ -52,6 +52,7 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #define FMT_SPEC_U	2
 #define FMT_SPEC_C	4
 #define FMT_SPEC_S	8
+#define FMT_SPEC_X	16
 
 struct s_fmt {
     char *p;
@@ -160,6 +161,10 @@ fmt_specifier(struct s_fmt *fmt)
 	fmt->p++;
 	fmt->specifier |= FMT_SPEC_S;
 	break;
+    case 'x':
+	fmt->p++;
+	fmt->specifier |= FMT_SPEC_X;
+	break;
     }
 
     return;
@@ -177,7 +182,7 @@ ui2a(unsigned long long int num, unsigned int base,char * bf)
 	num-=dgt*d;
 	d/=base;
 	if (n || dgt>0|| d==0) {
-	    *bf++ = dgt+(dgt<10 ? '0' : 'a'-10);
+	    *bf++ = dgt+(dgt<10 ? '0' : 'A'-10);
 	    ++n;
 	}
     }
@@ -244,6 +249,15 @@ cnprintf(void(*cb)(char), int size,char *fmt, va_list va)
                         cb(*bp);
                         bp++;
                     }
+                    break;
+                case (FMT_SPEC_X):
+                    strcpy(bf, "0x");
+                    if (s_fmt.length <= FMT_LEN_H)
+                        i2a(va_arg(va, int), 16, bf+2);
+                    else if (s_fmt.length == FMT_LEN_L)
+                        i2a(va_arg(va, long int), 16, bf+2);
+                    else if (s_fmt.length == FMT_LEN_LL) {
+                        strcpy(bf, "NaN");}
                     break;
             }
             char *b = bf;
