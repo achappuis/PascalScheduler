@@ -34,10 +34,6 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include "signals.h"
 #include "syscall.h"
 
-#if 0
-#include <reent.h>
-#endif
-
 /*
   Variable: current_tid
   Index of the currently running task.
@@ -63,14 +59,6 @@ static struct task_struct tasks[MAX_TASKS];
   Number of scheduler call since startup.
 */
 volatile long int jiffy;
-
-/*
-  Variable: reent_array
-  This array contains reent structures used by newlib.
-*/
-#if 0
-struct _reent reent_array[MAX_TASKS];
-#endif
 
 /*
   Macro: _save_context
@@ -145,20 +133,20 @@ scheduler()
     _save_context(tasks[current_tid].sp, tasks[current_tid].registers);
     tasks[current_tid].state = TASK_CREATED | TASK_READY;
     jiffy++;
-    
+
     if (sleep_flag == 1) { // Scheduler called by a sleep
       sleep_flag = 0;
       tasks[current_tid].state = TASK_CREATED | TASK_BLOCKED;
       tasks[current_tid].sleep_until = jiffy + sleep_time;
       tasks[current_tid].signal_flag = 0;
     }
-    else if (signal_flag != 0) { // Scheduler called by a signal_wait            
+    else if (signal_flag != 0) { // Scheduler called by a signal_wait
       tasks[current_tid].state = TASK_CREATED | TASK_BLOCKED;
       tasks[current_tid].sleep_until = 0;
       tasks[current_tid].signal_flag = signal_flag;
       signal_flag = 0;
     }
-    
+
     /*
      * Choose task
      */
@@ -175,21 +163,18 @@ scheduler()
 	  (jiffy > tasks[current_tid].sleep_until && tasks[current_tid].sleep_until !=0 ) ||
 	  ((tasks[current_tid].signal_flag & signals_flags) != 0)
 	)
-      )  
+      )
       ));
- 
+
     if ((tasks[current_tid].signal_flag & signals_flags) != 0 && tasks[current_tid].sleep_until == 0) {
       signals_flags &= ~(tasks[current_tid].signal_flag);
     }
-
-#if 0
-    _impure_ptr = &reent_array[current_tid];
-#endif
 
     tasks[current_tid].state = TASK_CREATED | TASK_RUNNING;
     _restore_context(tasks[current_tid].sp, tasks[current_tid].registers);
 
 }
+void SysTick_Handler() __attribute__((naked, alias ("scheduler")));
 
 /*
   Function scheduler_init
@@ -229,14 +214,16 @@ task_register(void(*task_func)(void))
         return -1;
     }
 
+#ifdef TARGET_XMC
     sp = (&THREAD_STACK_TOP - 512 * tid);
+#endif //TARGET_XMC
 
     // Create stackframe
     asm volatile(
-        "mov  %0, sp\n"
-        "ldr  %1,%3\n"
-        "mov  sp,%1\n"
-        "isb\n"
+        "mov  %0, sp\n"             // save sp register into old_sp variable
+        "ldr  %1,%3\n"              // load previously computed sp variable into
+        "mov  sp,%1\n"              // sp register. From now we can push into
+        "isb\n"                     // the task stack
 #ifdef STACK_DEBUG
         "ldr  %2,=0xDEADBEEF\n"
         "push {%2}\n"
@@ -267,4 +254,3 @@ task_register(void(*task_func)(void))
     registered_tasks++;
     return 0;
 }
-

@@ -31,10 +31,9 @@ knowledge of the CeCILL-B license and that you accept its terms.
 */
 
 #include "signals.h"
-
-#include "xmc1100.h"
 #include "sys/errno.h"
 #include "assembly.h"
+#include "platform.h"
 
 /*
   Function: signal_raise

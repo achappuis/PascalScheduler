@@ -32,16 +32,17 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #include <stdint.h>
 
-#include "xmc1100.h"
 #include "syscall.h"
 #include "assembly.h"
+#include "platform.h"
 
 void handler_dummy()
 __attribute__((naked));
 void
 handler_dummy()
 {
-    return;
+    for (;;) {
+    }
 }
 
 void handler_svc()

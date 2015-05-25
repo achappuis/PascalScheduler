@@ -35,10 +35,10 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include <errno.h>
 
 #include "assembly.h"
-#include "xmc1100.h"
 #include "syscall.h"
 #include "kern.h"
 #include "sys/dev.h"
+#include "platform.h"
 
 /*
   Function: sleep
@@ -75,11 +75,13 @@ is lower than the next heap_top address.
 void *
 sys_sbrk(int nbytes)
 {
+#ifdef TARGET_XMC
   extern const int __heap;
   extern const int __heap_end;
-
   static void *heap_top = (void *)&__heap;
   static void *heap_end = (void *)&__heap_end;
+#endif //TARGET_XMC
+
   static int c=0;
 
   void *base;
@@ -129,7 +131,7 @@ sys_read(int file, char *ptr, int len)
       break;
     }
 
-    return dev_read(ptr, sizeof(char), len, &vnode);
+    return dev_read(ptr, len, &vnode);
 }
 
 int
@@ -150,7 +152,7 @@ sys_write(int file, char *ptr, int len)
     }
 
 
-    return dev_write(ptr, sizeof(char), len, &vnode);
+    return dev_write(ptr, len, &vnode);
 }
 
 int
