@@ -165,8 +165,6 @@ mmc_read(uint8_t *buf, int size) {
 
 static int
 mmc_read_sector(struct mmc_info *mmc_info, uint8_t *buf, int sector) {
-    uint8_t crc[2];
-
     mmc_send_cmd(MMC_CMD17, sector * mmc_info->read_block_size);
     if (mmc_spi_read_status() != 0)
         return MMC_ERROR;
@@ -297,7 +295,7 @@ mmc_read_cid(struct mmc_info *mmc_info)
     mmc_cid->mid = UNSTUFF_BITS(buf,120,8);
     mmc_cid->prv = UNSTUFF_BITS(buf,56,8);
     mmc_cid->psn = UNSTUFF_BITS(buf,24,32);;
-    mmc_cid->mdt_year = UNSTUFF_BITS(buf,12,8); + 2000;
+    mmc_cid->mdt_year = UNSTUFF_BITS(buf,12,8) + 2000;
     mmc_cid->mdt_month = UNSTUFF_BITS(buf,8,4);
     mmc_cid->crc7 = UNSTUFF_BITS(buf,1,7);
 
