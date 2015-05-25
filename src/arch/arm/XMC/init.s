@@ -63,7 +63,7 @@ _vectors:
 
   .long 0
 	@ Hard Fault
-  ldr r0, =handler_hardfault
+  ldr r0, =HardFault_Handler
   mov pc,r0
 
   .long 0
@@ -74,16 +74,18 @@ _vectors:
 	.long 0
 	.long 0
 	@ SVCall
-  ldr r0,=handler_svc
+  ldr r0,=SVC_Handler
   mov pc,r0
 
 	.long 0
 	.long 0
-	.long 0
+
+	ldr r0, =PendSV_Handler
+	mov pc, r0
 
 	@ SysTick
-  ldr r0, =scheduler
-  mov pc, r0
+	ldr r0, =SysTick_Handler
+	mov pc, r0
 
 	.long 0                 @ IRQ0
 	.long 0
@@ -185,3 +187,22 @@ startup:
 
   .size   startup, . - startup
   .endfunc
+
+		.thumb_func
+		.weak Default_handler
+		.type Default_handler, %function
+Default_handler:
+		b  .
+		.size Default_handler, . - Default_handler
+
+		.weak HardFault_Handler
+		.thumb_set HardFault_Handler, Default_handler
+
+		.weak SVC_Handler
+		.thumb_set SVC_Handler, Default_handler
+
+		.weak PendSV_Handler
+		.thumb_set PendSV_Handler, Default_handler
+
+		.weak SysTick_Handler
+		.thumb_set SysTick_Handler, Default_handler
