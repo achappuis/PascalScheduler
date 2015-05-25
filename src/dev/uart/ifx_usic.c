@@ -40,8 +40,10 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #define __UNUSED(x) (void)(x)
 
-uint32_t
-_usic_uart_send(uint32_t uwData)
+static XMC_UART_CH_CONFIG_t uart_config;
+
+uint8_t
+_usic_uart_send(uint8_t uwData)
 {
   XMC_UART_CH_Transmit(XMC_UART0_CH1, (uint16_t)uwData);
   return 0;
@@ -56,6 +58,7 @@ _usic_uart_read()
 int
 usic_uart_open(struct vnode *vnode)
 {
+  vnode->data = &uart_config;
   XMC_UART_CH_CONFIG_t *data = (XMC_UART_CH_CONFIG_t *)vnode->data;
 
   data->baudrate = 115200;

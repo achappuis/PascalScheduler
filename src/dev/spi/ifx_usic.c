@@ -39,6 +39,8 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #define __UNUSED(x) (void)(x)
 
+static XMC_SPI_CH_CONFIG_t spi_config;
+
 int
 _usic_spi_enable_slave(int slave)
 {
@@ -82,6 +84,7 @@ usic_spi_open(struct vnode *vnode)
   XMC_GPIO_CONFIG_t selo_pin_config;
   XMC_GPIO_CONFIG_t clk_pin_config;
 
+  vnode->data = &spi_config;
   XMC_SPI_CH_CONFIG_t *data = (XMC_SPI_CH_CONFIG_t *)vnode->data;
 
   data->baudrate = 50000;
