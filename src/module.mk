@@ -1,7 +1,6 @@
 $(TARGET): src/main.o \
 	src/c_init.o\
 	src/circular_buffer.o\
-	src/init.o\
 	src/isr.o\
 	src/scheduler.o\
 	src/signals.o\
@@ -11,7 +10,6 @@ $(TARGET): src/main.o \
 clean: src/main.o \
 	src/c_init.o\
 	src/circular_buffer.o\
-	src/init.o\
 	src/isr.o\
 	src/scheduler.o\
 	src/signals.o\
