@@ -137,6 +137,8 @@ _vectors:
 	.global _start
 	.func 	_start
 _start:
+  @ Disable interrupts
+	CPSID   I
   @ Copy Data from flash to his relocation address
   LDR     r1, =(__data_flash)  @ Src register
   LDR     r3, =(__data_ram)  @ Dst register
@@ -163,7 +165,7 @@ bss_loop:
   @ Initialise Stack
   LDR     r3, =(__stack_start)
   LDR     r5, =(__stack_size)
-  LDR     r2, =0x00
+  LDR     r2, =0xAB
 stack_loop:
   STRB     r2,[r3, #0]
   ADD     r3, r3, #1
@@ -187,22 +189,3 @@ startup:
 
   .size   startup, . - startup
   .endfunc
-
-		.thumb_func
-		.weak Default_handler
-		.type Default_handler, %function
-Default_handler:
-		b  .
-		.size Default_handler, . - Default_handler
-
-		.weak HardFault_Handler
-		.thumb_set HardFault_Handler, Default_handler
-
-		.weak SVC_Handler
-		.thumb_set SVC_Handler, Default_handler
-
-		.weak PendSV_Handler
-		.thumb_set PendSV_Handler, Default_handler
-
-		.weak SysTick_Handler
-		.thumb_set SysTick_Handler, Default_handler
