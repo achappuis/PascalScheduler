@@ -37,19 +37,13 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #include "sys/dev.h"
 
-/*
- * Enum: i2c_ioctl
- * Available ioctl for I2C devices.
- *
- * Attributes:
- *   I2C_IOCTL_SET_PEER     - Set peer address. The given address should be
- * 	8 bits address with R/W bit set to 0.
+/** Available ioctl for I2C devices.
  */
 enum i2c_ioctl {
-  I2C_IOCTL_SET_PEER
+  I2C_IOCTL_SET_PEER /**< Set peer address. The given address should be 8 bits address with R/W bit set to 0.*/
 };
 
 #define IIC_WRITE  0
-#define IIC_READ  1    
+#define IIC_READ  1
 
 #endif

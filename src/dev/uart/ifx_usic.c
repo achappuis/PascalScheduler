@@ -33,7 +33,6 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include "uart.h"
 #include "ifx_usic.h"
 #include "../gpio/gpio.h"
-#include "xmc1100.h"
 
 #include <xmc_gpio.h>
 #include <xmc_uart.h>
@@ -45,14 +44,22 @@ static XMC_UART_CH_CONFIG_t uart_config;
 uint8_t
 _usic_uart_send(uint8_t uwData)
 {
-  XMC_UART_CH_Transmit(XMC_UART0_CH1, (uint16_t)uwData);
+  while (XMC_USIC_CH_TXFIFO_IsFull(UART_CHANNEL) == true)
+  {
+  }
+
+  XMC_USIC_CH_TXFIFO_PutData(UART_CHANNEL, (uint16_t)uwData);
   return 0;
 }
 
 uint8_t
 _usic_uart_read()
 {
-  return (uint8_t)XMC_UART_CH_GetReceivedData(XMC_UART0_CH1);
+  while (XMC_USIC_CH_RXFIFO_IsEmpty(UART_CHANNEL) == true)
+  {
+  }
+
+  return (uint8_t)XMC_USIC_CH_RXFIFO_GetData(UART_CHANNEL);
 }
 
 int
@@ -61,21 +68,26 @@ usic_uart_open(struct vnode *vnode)
   vnode->data = &uart_config;
   XMC_UART_CH_CONFIG_t *data = (XMC_UART_CH_CONFIG_t *)vnode->data;
 
-  data->baudrate = 115200;
+  data->baudrate = UART_BAUD_RATE;
   data->data_bits = 8U;
   data->parity_mode = XMC_USIC_CH_PARITY_MODE_NONE;
   data->stop_bits = 1U;
 
-  XMC_UART_CH_Init(XMC_UART0_CH1, data);
-  XMC_UART_CH_SetInputSource(XMC_UART0_CH1, XMC_UART_CH_INPUT_RXD, USIC0_C1_DX0_P0_6);
+  XMC_UART_CH_Init(UART_CHANNEL, data);
+
+  /* Configure input stage */
+  XMC_UART_CH_SetInputSource(UART_CHANNEL, XMC_UART_CH_INPUT_RXD, UART_INPUT_SOURCE);
+
+  /* Configure FIFO */
+  XMC_USIC_CH_RXFIFO_Configure(UART_CHANNEL, 32, XMC_USIC_CH_FIFO_SIZE_16WORDS, 8);
+  XMC_USIC_CH_TXFIFO_Configure(UART_CHANNEL, 48, XMC_USIC_CH_FIFO_SIZE_16WORDS, 8);
 
   /* Start UART channel */
-  XMC_UART_CH_Start(XMC_UART0_CH1);
+  XMC_UART_CH_Start(UART_CHANNEL);
 
   /* Configure pins */
-  XMC_GPIO_SetMode(P0_7, XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7);
-  XMC_GPIO_SetMode(P0_6, XMC_GPIO_MODE_INPUT_TRISTATE);
-
+  XMC_GPIO_SetMode(UART_TX_PIN, UART_TX_ALT);
+  XMC_GPIO_SetMode(UART_RX_PIN, UART_RX_ALT);
   return 0;
 }
 
@@ -83,7 +95,7 @@ int
 usic_uart_close(struct vnode *vnode)
 {
     __UNUSED(vnode);
-    XMC_UART_CH_Stop(XMC_UART0_CH1);
+    XMC_UART_CH_Stop(UART_CHANNEL);
     return 0;
 }
 
@@ -110,10 +122,7 @@ usic_uart_read(struct vnode *vnode, struct uio *uio)
 
     ptr = uio->uio_iov->iov_base;
     for(; uio->uio_resid > 0; uio->uio_resid--, ptr++) {
-      do {
-        ans = _usic_uart_read();
-      } while(!ans);
-
+      ans = _usic_uart_read();
       *ptr = ans;
     }
 

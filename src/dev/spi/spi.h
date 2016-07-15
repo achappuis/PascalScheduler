@@ -37,11 +37,7 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #include "sys/dev.h"
 
-/*
- * Enum: spi_ioctl
- * Available ioctl for UART devices.
- *
- * Attributes:
+/** Available ioctl for UART devices.
  */
 enum spi_ioctl {
   SPI_IOCTL_ENABLE_SLAVE,

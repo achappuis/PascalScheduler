@@ -37,19 +37,12 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #include "sys/dev.h"
 
-/*
- * Enum: pwm_ioctl
- * Available ioctl for PWM devices.
- *
- * Attributes:
- *   PWM_IOCTL_SET_DUTY     - Set PWM duty cycle.
- *   PWM_IOCTL_SET_PERIODE  - Set PWM frequency.
- *   PWM_IOCTL_SET_UPDATE   - Update frequency and duty cycle.
+/** Available ioctl for PWM devices.
  */
 enum pwm_ioctl {
-  PWM_IOCTL_SET_DUTY,
-  PWM_IOCTL_SET_PERIODE,
-  PWM_IOCTL_SET_UPDATE,
+  PWM_IOCTL_SET_DUTY,    /**< Set PWM duty cycle */
+  PWM_IOCTL_SET_PERIODE, /**< Set PWM frequency */
+  PWM_IOCTL_SET_UPDATE,  /**< Update frequency and duty cycle */
 };
 
 #endif

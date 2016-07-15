@@ -1,6 +1,5 @@
 ifeq ($(LCD),HD44780)
-$(TARGET): src/dev/lcd/hd44780.o
-clean: src/dev/lcd/hd44780.o
+OBJECTS+= src/dev/lcd/hd44780.o
 CCFLAGS+=-DLCD_MODULE
 endif
 

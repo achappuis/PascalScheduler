@@ -1,12 +1,10 @@
 ifeq ($(UART),IFX_USIC)
-$(TARGET): src/dev/uart/ifx_usic.o \
-	${XMCLIB}CMSIS/Infineon/XMC1100_series/Source/system_XMC1100.o \
-	${XMCLIB}XMClib/src/xmc_uart.o \
-	${XMCLIB}XMClib/src/xmc1_usic.o \
-	${XMCLIB}XMClib/src/xmc_usic.o \
-	${XMCLIB}XMClib/src/xmc1_scu.o \
-	${XMCLIB}XMClib/src/xmc_gpio.o	
-clean: src/dev/uart/ifx_usic.o
+OBJECTS+= src/dev/uart/ifx_usic.o \
+	${XMCLIB_CMSIS}Infineon/XMC1100_series/Source/system_XMC1100.o \
+	${XMCLIB}src/xmc_uart.o \
+	${XMCLIB}src/xmc_usic.o \
+	${XMCLIB}src/xmc1_scu.o \
+	${XMCLIB}src/xmc_gpio.o
 CCFLAGS+=-DUART_MODULE
 ifeq ($(UART_USIC),CH0)
 CCFLAGS+=-DUART_USIC_CH0

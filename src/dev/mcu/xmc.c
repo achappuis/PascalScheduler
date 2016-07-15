@@ -30,33 +30,25 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL-B license and that you accept its terms.
 */
 
-#ifndef DEV_I2C_IFX_USIC_H
-#define DEV_I2C_IFX_USIC_H
+#include "mcu.h"
 
-#ifdef I2C_USIC_CH0
-# define I2C_CHANNEL       XMC_I2C0_CH0
-# define I2C_INPUT_SOURCE  USIC0_C0_DX0_P2_0
-# define I2C_TX_PIN        P2_1
-# define I2C_RX_PIN        P2_0
-# define I2C_TX_ALT        XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6
-# define I2C_RX_ALT        XMC_GPIO_MODE_INPUT_TRISTATE
-#endif
+#include <XMC1100.h>
 
-#ifdef I2C_USIC_CH1
-# define I2C_CHANNEL       XMC_I2C0_CH1
-# define I2C_INPUT_SOURCE  USIC0_C1_DX0_P1_3
-# define I2C_TX_PIN        P1_2
-# define I2C_RX_PIN        P1_3
-# define I2C_TX_ALT        XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7
-# define I2C_RX_ALT        XMC_GPIO_MODE_INPUT_TRISTATE
-#endif
+char mcu_string[] = "Infineon XMC1100 version x";
+	
+char *get_mcu_string()
+{
+	mcu_string[25] = '0' + (((SCU_GENERAL->DBGROMID & 0xF0000000) >> 24) & 0xF);
+	
+	return mcu_string;
+}
 
-#ifdef I2C_19200
-# define I2C_BAUD_RATE 19200
-#endif
+int get_flash_size()
+{
+	return ((((PAU->FLSIZE & 0x3F000) >> 12) & 0x3F)  - 1) * 4;
+}
 
-#ifdef I2C_115200
-# define I2C_BAUD_RATE 115200
-#endif
-
-#endif
+int get_ram_size()
+{
+	return (((PAU->RAM0SIZE & 0x1F00) >> 8) & 0x1F)  * 256;
+}

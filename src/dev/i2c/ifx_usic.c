@@ -33,9 +33,13 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include "i2c.h"
 #include "ifx_usic.h"
 #include "../gpio/gpio.h"
-#include "xmc1100.h"
+
+#include <xmc_gpio.h>
+#include <xmc_i2c.h>
 
 #define __UNUSED(x) (void)(x)
+
+static XMC_I2C_CH_CONFIG_t i2c_config;
 
 enum usic_tdf {
     I2C_WRITE         = 0x000,
@@ -47,169 +51,113 @@ enum usic_tdf {
 };
 
 void
-_usic_i2c_send(uint32_t uwTDF, uint32_t uwData)
+_usic_i2c_send(uint16_t uwData)
 {
-    while( TCSR & 0x0080);
-    
-    PSCR |= 0x2000;
-    // clear PSR_TBIF
-    TBUF[0] = uwTDF | uwData; // load TBUF00
-} 
+  while (XMC_USIC_CH_TXFIFO_IsFull(I2C_CHANNEL) == true)
+  {
+  }
 
-uint32_t
+  XMC_USIC_CH_TXFIFO_PutData(I2C_CHANNEL, (uint16_t)uwData);
+}
+
+uint8_t
 _usic_i2c_read()
 {
-    while( PSR & 0x800);
-    
-    return (uint32_t)RBUF;
+  return (uint8_t)XMC_USIC_CH_RXFIFO_GetData(I2C_CHANNEL);
 }
 
 int
 usic_i2c_open(struct vnode *vnode)
 {
-    __UNUSED(vnode);
-    
-    KSCFG = 0x3; // Enable module
-    CCR = 0x000000000;
-          
-    DX0CR = 0x00000000; // Input Stage SDA -> P0.14
-    DX1CR = 0x00000001; // Intput Stage SDC -> P0.8
+  vnode->data = &i2c_config;
+  XMC_I2C_CH_CONFIG_t *data = (XMC_I2C_CH_CONFIG_t *)vnode->data;
 
-    FDR = 0x00008317; // DM=2, STEP=0x317
-    BRG = 0x00182500; // PCTQ=1, DCTQ=9, PDIV = 24 
-    
-    INPR = 0x00000000; // AINP=0, RINP=0, TBINP=0, TSINP=0 PINP=0
-    SCTR = 0x073F0303; // TRM=3, PDL=1, SDIR=1, WLE=7, FLE=3F
-    TCSR = 0x00000500; // TDEN=1, TDSSM=1
-    PCR  = 0x30000000; // STIM=0, HDEL=12
-    PCR  = 0x0001FFFF; // STIM=0, HDEL=12
+  data->baudrate = 100000U;
 
-    // Pin as opendrain. ALT6
-    GPIO_PIN_MUX(SCL_PORT, GPIO_OUTPUT_OD | SCL_ALT , SCL_PIN); 
-    GPIO_PIN_MUX(SDA_PORT, GPIO_OUTPUT_OD | SDA_ALT , SDA_PIN);  
+  XMC_I2C_CH_Init(I2C_CHANNEL, data);
 
-    //CCR.MODE = 0x0100;
-    CCR = 0x000000004;
-    
-    return 0;
+  /* Configure input stage */
+  XMC_I2C_CH_SetInputSource(I2C_CHANNEL, XMC_I2C_CH_INPUT_SDA, USIC0_C0_DX0_P2_1);
+  XMC_I2C_CH_SetInputSource(I2C_CHANNEL, XMC_I2C_CH_INPUT_SCL, USIC0_C0_DX1_P2_0);
+
+  /* Configure FIFO */
+  XMC_USIC_CH_RXFIFO_Configure(I2C_CHANNEL, 0, XMC_USIC_CH_FIFO_SIZE_16WORDS, 8);
+  XMC_USIC_CH_TXFIFO_Configure(I2C_CHANNEL, 16, XMC_USIC_CH_FIFO_SIZE_16WORDS, 8);
+
+  /* Start i2c channel */
+  XMC_I2C_CH_Start(I2C_CHANNEL);
+
+  // Enable digital path
+  XMC_GPIO_EnableDigitalInput(P2_1);
+  XMC_GPIO_EnableDigitalInput(P2_0);
+  // Configure pins
+  XMC_GPIO_SetMode(P2_1, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN_ALT6);
+  XMC_GPIO_SetMode(P2_0, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN_ALT7);
+
+  return 0;
 }
 
 int
 usic_i2c_close(struct vnode *vnode)
 {
-    __UNUSED(vnode);
+	__UNUSED(vnode);
+    XMC_I2C_CH_Stop(I2C_CHANNEL);
     return 0;
 }
 
 int
 usic_i2c_write(struct vnode *vnode, struct uio *uio)
 {
-    uint32_t *ptr;
-    int low_add;
+    __UNUSED(vnode);
+    uint8_t *ptr;
+    uint8_t timeout =0;
 
-#define	SEND_BYTE(a)	  _usic_i2c_send(0, ((*(ptr)) & (0xFF << 8*(a))) >> 8*(a) ); uio->uio_resid--
-    
-    if (uio->uio_rw != UIO_WRITE) {
-	return -1;
-    }
-    
-    _usic_i2c_send(I2C_START, vnode->endpt);
-    
-    // iov_base should be aligned
-    ptr = uio->uio_iov->iov_base;
-    low_add = (int)((uint32_t)ptr & 0x3); // lowest 2 bits
-    ptr = (uint32_t*)((uint32_t)ptr & (~0x3));
-    switch(low_add) {
-    case 0:		// Aligned
-	break;
-    case 1:
-	SEND_BYTE(1);
-	if(uio->uio_resid > 0) { SEND_BYTE(2); }
-	if(uio->uio_resid > 0) { SEND_BYTE(3); }
-	break;
-    case 2:
-	SEND_BYTE(2);
-	if(uio->uio_resid > 0) { SEND_BYTE(3); }
-	break;
-    case 3:
-	SEND_BYTE(3);
-	break;
-    }
-    if (uio->uio_resid == 0) {
-	_usic_i2c_send(I2C_STOP, 0);
-	return 0;
-    }
-    
-    for(; uio->uio_resid > 0; ptr++) {	
-	SEND_BYTE(0);
-	if(uio->uio_resid > 0) { SEND_BYTE(1); }
-	if(uio->uio_resid > 0) { SEND_BYTE(2); }
-	if(uio->uio_resid > 0) { SEND_BYTE(3); }
-    }
-    
-    _usic_i2c_send(I2C_STOP, 0);
+	XMC_I2C_CH_MasterStart(I2C_CHANNEL, vnode->endpt, XMC_I2C_CH_CMD_WRITE);
+  uint32_t statusFlag = 0;
+	while((statusFlag & XMC_I2C_CH_STATUS_FLAG_ACK_RECEIVED) == 0U && timeout < 200)
+	{
+    statusFlag = XMC_I2C_CH_GetStatusFlag(I2C_CHANNEL);
+		timeout++;
+	}
+	XMC_I2C_CH_ClearStatusFlag(I2C_CHANNEL, XMC_I2C_CH_STATUS_FLAG_ACK_RECEIVED);
+
+  ptr = uio->uio_iov->iov_base;
+  for(; uio->uio_resid > 0; uio->uio_resid--, ptr++) {
+    _usic_i2c_send(*ptr);
+  }
+	XMC_I2C_CH_MasterStop(I2C_CHANNEL);
+
     return 0;
 }
 
 int
 usic_i2c_read(struct vnode *vnode, struct uio *uio)
 {
-    uint32_t *ptr;
-    int low_add;
-    int offset;
-    uint32_t ans;
+	__UNUSED(vnode);
+    uint8_t *ptr;
+    uint8_t ans;
 
-#define	CLEAR_ANS(__a) *ptr &= ~(0xFF << 8*(__a))
-#define	WRITE_ANS(__a) *ptr |= ans << 8*(__a);offset++;offset%=4; uio->uio_resid--
-#define READ_INNER(__a) 	if (uio->uio_resid == 1) {\
-	    _usic_i2c_send(I2C_READ_NACK, 0);\
-	} else {\
-	    _usic_i2c_send(I2C_READ, 0);\
-	}\
-	ans = _usic_i2c_read();\
-	CLEAR_ANS(__a);\
-	WRITE_ANS(__a);
-    
-    if (uio->uio_rw != UIO_READ) {
-	return -1;
-    }
-
-    _usic_i2c_send(I2C_START, vnode->endpt | 0x1);
-    
-    // iov_base should be aligned
+	XMC_I2C_CH_MasterStart(I2C_CHANNEL, vnode->endpt, XMC_I2C_CH_CMD_READ);
     ptr = uio->uio_iov->iov_base;
-    offset = 0;
-    low_add = (int)((uint32_t)ptr & 0x3); // lowest 2 bits
-    ptr = (uint32_t*)((uint32_t)ptr & (~0x3));
-    switch(low_add) {
-    case 0:		// Aligned
-	break;
-    case 1:
-	READ_INNER(1);
-	if(uio->uio_resid > 0) { READ_INNER(2); }
-	if(uio->uio_resid > 0) { READ_INNER(3); }
-	break;
-    case 2:
-	READ_INNER(2);
-	if(uio->uio_resid > 0) { READ_INNER(3); }
-	break;
-    case 3:
-	READ_INNER(3);
-	break;
+    for(; uio->uio_resid > 0; uio->uio_resid--, ptr++) {
+
+      if (uio->uio_resid > 1) {
+          XMC_I2C_CH_MasterReceiveAck(I2C_CHANNEL);
+      } else {
+          XMC_I2C_CH_MasterReceiveNack(I2C_CHANNEL);
+      }
+      while((XMC_I2C_CH_GetStatusFlag(I2C_CHANNEL) & (XMC_I2C_CH_STATUS_FLAG_RECEIVE_INDICATION |
+                                                       XMC_I2C_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION)) == 0U)
+      {
+        /* wait for ACK */
+      }
+      XMC_I2C_CH_ClearStatusFlag(I2C_CHANNEL, XMC_I2C_CH_STATUS_FLAG_RECEIVE_INDICATION |
+                                               XMC_I2C_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION);
+      ans = _usic_i2c_read();
+      *ptr = ans;
     }
-    if (uio->uio_resid == 0) {
-	_usic_i2c_send(I2C_STOP, 0);
-	return 0;
-    }
-    
-    for(; uio->uio_resid > 0;uio->uio_resid--, ptr++) {
-	READ_INNER(0);
-	if(uio->uio_resid > 0) { READ_INNER(1); }
-	if(uio->uio_resid > 0) { READ_INNER(2); }
-	if(uio->uio_resid > 0) { READ_INNER(3); }
-    }
-    
-    _usic_i2c_send(I2C_STOP, 0);
+	XMC_I2C_CH_MasterStop(I2C_CHANNEL);
+
     return 0;
 }
 
@@ -221,8 +169,8 @@ usic_i2c_ioctl(struct vnode *vnode, uint8_t code, void *data)
 	vnode->endpt  = *(int*)data;
 	break;
     }
-    
+
     return 0;
-} 
+}
 
 struct dev_ops i2c = { usic_i2c_open, usic_i2c_close, usic_i2c_read, usic_i2c_write, usic_i2c_ioctl };

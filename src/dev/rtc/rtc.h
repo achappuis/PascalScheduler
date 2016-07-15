@@ -30,33 +30,19 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL-B license and that you accept its terms.
 */
 
-#ifndef DEV_I2C_IFX_USIC_H
-#define DEV_I2C_IFX_USIC_H
+#ifndef DEV_RTC_H
+#define DEV_RTC_H
 
-#ifdef I2C_USIC_CH0
-# define I2C_CHANNEL       XMC_I2C0_CH0
-# define I2C_INPUT_SOURCE  USIC0_C0_DX0_P2_0
-# define I2C_TX_PIN        P2_1
-# define I2C_RX_PIN        P2_0
-# define I2C_TX_ALT        XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6
-# define I2C_RX_ALT        XMC_GPIO_MODE_INPUT_TRISTATE
-#endif
+#include <stdint.h>
+#include "time.h"
 
-#ifdef I2C_USIC_CH1
-# define I2C_CHANNEL       XMC_I2C0_CH1
-# define I2C_INPUT_SOURCE  USIC0_C1_DX0_P1_3
-# define I2C_TX_PIN        P1_2
-# define I2C_RX_PIN        P1_3
-# define I2C_TX_ALT        XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7
-# define I2C_RX_ALT        XMC_GPIO_MODE_INPUT_TRISTATE
-#endif
+#include "sys/dev.h"
 
-#ifdef I2C_19200
-# define I2C_BAUD_RATE 19200
-#endif
-
-#ifdef I2C_115200
-# define I2C_BAUD_RATE 115200
-#endif
+/** Available ioctl for RTC devices.
+ */
+enum rtc_ioctl {
+    RTC_IOCTL_SET_TIME, /**< Set RTC time with a tm stuct */
+    RTC_IOCTL_GET_TIME, /**< Get RTC time into a tm stuct */
+};
 
 #endif

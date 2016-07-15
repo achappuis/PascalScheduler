@@ -1,10 +1,7 @@
 ifeq ($(I2C),IFX_USIC)
-
-$(TARGET): src/dev/i2c/ifx_usic.o
-clean: src/dev/i2c/ifx_usic.o
-
+OBJECTS+= src/dev/i2c/ifx_usic.o \
+	${XMCLIB}src/xmc_i2c.o
 CCFLAGS+=-DI2C_MODULE
-
 ifeq ($(I2C_USIC),CH0)
 CCFLAGS+=-DI2C_USIC_CH0
 endif

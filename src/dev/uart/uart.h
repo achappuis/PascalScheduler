@@ -37,12 +37,7 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #include "sys/dev.h"
 
-/*
- * Enum: uart_ioctl
- * Available ioctl for UART devices.
- *
- * Attributes:
- *   I2C_IOCTL_SET_BAUD     - _
+/** Available ioctl for UART devices.
  */
 enum uart_ioctl {
   UART_IOCTL_SET_BAUD
