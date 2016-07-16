@@ -29,43 +29,10 @@ same conditions as regards security.
 The fact that you are presently reading this means that you have had
 knowledge of the CeCILL-B license and that you accept its terms.
 */
+#ifndef MUTEX_H
+#define MUTEX_H
 
-#include "signals.h"
-#include "sys/errno.h"
-#include "platform.h"
+void mutex_lock();
+void mutex_unlock();
 
-/*
-  Function: signal_raise
-  Assert a signal and return.
-
-  Parameters:
-  - signal	A uint32_t signal ID.
-
-  See Also:
-    <signal_wait>
-*/
-void
-signal_raise(uint32_t signal)
-{
-  signals_flags |= signal;
-}
-
-/*
-  Function: signal_wait
-  Wait for a signal. The scheduler is called before the function returns.
-
-  Parameters:
-  - signal	A uint32_t signal ID.
-
-  See Also:
-    <signal_raise>
-*/
-void
-signal_wait(uint32_t signal)
-{
-  signal_flag = signal;
-  SysTick->VAL = 0;
-  while (signal_flag != 0) {
-    __NOP();
-  }
-}
+#endif // MUTEX_H

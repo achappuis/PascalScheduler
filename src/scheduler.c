@@ -30,6 +30,7 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL-B license and that you accept its terms.
 */
 
+#include "xmc_gpio.h"
 #include "scheduler.h"
 #include "signals.h"
 #include "syscall.h"
@@ -38,7 +39,7 @@ knowledge of the CeCILL-B license and that you accept its terms.
   Variable: current_tid
   Index of the currently running task.
 */
-static int current_tid;
+unsigned int current_tid;
 
 /*
   Variable: registered_tasks
@@ -52,7 +53,7 @@ static int registered_tasks;
   Variable: tasks
   An array of <task_struct> containing all the system tasks.
 */
-static struct task_struct tasks[MAX_TASKS];
+struct task_struct tasks[MAX_TASKS];
 
 /*
   Variable: jiffy
@@ -60,60 +61,7 @@ static struct task_struct tasks[MAX_TASKS];
 */
 volatile long int jiffy;
 
-/*
-  Macro: _save_context
-  Save context of the interrupted task.
-
-  Parameters:
-  sp - uint32_t variable where stack address will be saved.
-  registers - array where some registers will be saved.
-
-  See Also:
-    <_restore_context>
-*/
-#define _save_context(_x_,_y_) {\
-        uint32_t tmp;\
-        asm volatile(\
-        "mov    %0, %2\n"\
-        "stmia  %0!, {r4-r7}\n"\
-        "mrs %1, psp\n"\
-        : "=r" (tmp),  "=r" (_x_)\
-        : "g" (_y_)\
-    );\
-    }
-
-/*
-  Macro: _restore_context
-  Restore context of the interrupted task.
-
-  Parameters:
-  sp - uint32_t variable containing stack address.
-  registers - array where some registers were saved.
-
-  See Also:
-    <_save_context>
-*/
-
-#define _restore_context(_x_,_y_) {\
-        uint32_t tmp;\
-        asm volatile(\
-        "mov    %0, %1\n"\
-        "ldmia  %0!, {r4-r7}\n"\
-        : "=r" (tmp)\
-        : "g" (_y_)\
-        : "r4", "r5", "r6"\
-    );\
-    asm volatile(\
-        "msr psp, %1\n"\
-        "isb\n"\
-        "ldr %0, =0xfffffffd\n"\
-        "mov lr, %0\n"\
-        "bx lr\n"\
-        : "=r" (tmp)\
-        : "r" (_x_)\
-    );\
-    }
-
+static volatile int mutex = 0;
 /*
   Function: scheduler
 
@@ -130,51 +78,24 @@ volatile long int jiffy;
 void
 scheduler()
 {
-    _save_context(tasks[current_tid].sp, tasks[current_tid].registers);
-    tasks[current_tid].state = TASK_CREATED | TASK_READY;
+    tasks[current_tid].state = TASK_READY;
     jiffy++;
 
-    if (sleep_flag == 1) { // Scheduler called by a sleep
-      sleep_flag = 0;
-      tasks[current_tid].state = TASK_CREATED | TASK_BLOCKED;
-      tasks[current_tid].sleep_until = jiffy + sleep_time;
-      tasks[current_tid].signal_flag = 0;
-    }
-    else if (signal_flag != 0) { // Scheduler called by a signal_wait
-      tasks[current_tid].state = TASK_CREATED | TASK_BLOCKED;
-      tasks[current_tid].sleep_until = 0;
-      tasks[current_tid].signal_flag = signal_flag;
-      signal_flag = 0;
+    if (signal_flag != 0) { // Scheduler called by a signal_wait
+        tasks[current_tid].state = TASK_CREATED | TASK_BLOCKED;
+        tasks[current_tid].sleep_until = 0;
+        tasks[current_tid].signal_flag = signal_flag;
+        signal_flag = 0;
     }
 
     /*
-     * Choose task
-     */
-    do {
-      current_tid++;
-      if(current_tid >= registered_tasks) {
-	  current_tid = 0;
-      }
-    } while (!(
-      (tasks[current_tid].state & TASK_READY) ||
-      (
-	(tasks[current_tid].state & TASK_BLOCKED) &&
-	(
-	  (jiffy > tasks[current_tid].sleep_until && tasks[current_tid].sleep_until !=0 ) ||
-	  ((tasks[current_tid].signal_flag & signals_flags) != 0)
-	)
-      )
-      ));
+    * Choose task
+    */
+    current_tid = k_task_peek_next(current_tid);
 
-    if ((tasks[current_tid].signal_flag & signals_flags) != 0 && tasks[current_tid].sleep_until == 0) {
-      signals_flags &= ~(tasks[current_tid].signal_flag);
-    }
-
-    tasks[current_tid].state = TASK_CREATED | TASK_RUNNING;
-    _restore_context(tasks[current_tid].sp, tasks[current_tid].registers);
-
+    tasks[current_tid].state = TASK_RUNNING;
 }
-void SysTick_Handler() __attribute__((naked, alias ("scheduler")));
+void SysTick_C_Handler() __attribute__((alias ("scheduler")));
 
 /*
   Function scheduler_init
@@ -182,10 +103,109 @@ void SysTick_Handler() __attribute__((naked, alias ("scheduler")));
 int
 scheduler_init(void)
 {
-    registered_tasks = 1;
+    registered_tasks = 0;
     current_tid = 0;
-    tasks[current_tid].state = TASK_CREATED | TASK_RUNNING;
+    tasks[current_tid].state = TASK_RUNNING;
+    SysTick_Config(SystemCoreClock / 1000);
+    __enable_irq();
     return 0;
+}
+
+
+#define IS_READY(_tid) (tasks[(_tid)].state & TASK_READY)
+#define IS_BLOCKED(_tid) (tasks[(_tid)].state & TASK_BLOCKED)
+
+void k_task_update_state()
+{
+    int i;
+    for (i = 1; i <= registered_tasks; i++) {
+        if (tasks[i].state & TASK_BLOCKED && jiffy > tasks[i].sleep_until) {
+            tasks[i].state = TASK_READY;
+        }
+        if (tasks[i].state & TASK_MUTEX_BLOCKED && mutex == 0) {
+            tasks[i].state = TASK_READY;
+            mutex = 1;
+        }
+    }
+}
+
+int k_task_peek_next(int ctid)
+{
+  // If no task registered yet, run Idle task.
+  if (registered_tasks == 0) {
+    return 0;
+  }
+
+  k_task_update_state();
+  int k_task_peek_next = ctid;
+
+  if (k_task_peek_next == 0) { // From Idle task
+    do {
+      k_task_peek_next++;
+        if(k_task_peek_next > registered_tasks) {
+          return 0;
+        }
+    } while (!IS_READY(k_task_peek_next));
+  } else {
+    do {
+      k_task_peek_next++;
+        if(k_task_peek_next > registered_tasks) {
+          k_task_peek_next = 1;
+        }
+        if (k_task_peek_next == ctid) {
+          return 0;
+        }
+    } while (!IS_READY(k_task_peek_next));
+  }
+
+  SysTick->VAL = SysTick->LOAD;
+  return k_task_peek_next;
+}
+
+
+void k_task_sleep(long int stime)
+{
+    tasks[current_tid].state = TASK_BLOCKED;
+    tasks[current_tid].sleep_until = jiffy + stime;
+    tasks[current_tid].signal_flag = 0;
+
+    /*
+     * Choose a task
+     */
+    current_tid = k_task_peek_next(current_tid);
+
+    tasks[current_tid].state = TASK_RUNNING;
+}
+
+
+void k_task_yield()
+{
+    tasks[current_tid].state = TASK_READY; // Task yield but is still ready to run
+
+    /*
+     * Choose a task
+     */
+    current_tid = k_task_peek_next(current_tid);
+
+    tasks[current_tid].state = TASK_RUNNING;
+}
+
+void k_mutex_lock()
+{
+    if (mutex == 0) {
+        // Locking mutex and continue to run
+        mutex = 1;
+    } else {
+        // Bloking task and choose another to run
+        tasks[current_tid].state = TASK_MUTEX_BLOCKED;
+        current_tid = k_task_peek_next(current_tid);
+        tasks[current_tid].state = TASK_RUNNING;
+    }
+}
+
+void k_mutex_unlock()
+{
+    mutex = 0;
 }
 
 /*
@@ -203,12 +223,12 @@ scheduler_init(void)
     <scheduler>
 */
 int
-task_register(void(*task_func)(void))
+k_task_register(void(*task_func)(void))
 {
     void* sp;
     void* old_sp;
     uint32_t tmp1, tmp2;
-    int tid = registered_tasks;
+    int tid = registered_tasks + 1;
 
     if(tid >= MAX_TASKS) {
         return -1;
@@ -249,7 +269,7 @@ task_register(void(*task_func)(void))
 #else
     tasks[tid].sp   = sp - 32;
 #endif
-    tasks[tid].state   = TASK_READY;
+    tasks[tid].state = TASK_READY;
 
     registered_tasks++;
     return 0;

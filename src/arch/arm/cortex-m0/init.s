@@ -185,7 +185,7 @@ stack_loop:
   BL      c_init
 
 startup:
-  BL       _main
+  BL       _kernel_entry
 
   .size   startup, . - startup
   .endfunc

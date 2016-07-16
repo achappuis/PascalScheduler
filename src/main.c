@@ -30,145 +30,61 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL-B license and that you accept its terms.
 */
 
-#include <errno.h>
-#include <stdint.h>
 #include <stdio.h>
 
-#include "sys/dev.h"
-
-#include "xmc1100.h"
-#include "assembly.h"
-#include "signals.h"
+#include "dev/rtc/rtc.h"
+#include "mutex.h"
 #include "syscall.h"
-#include "scheduler.h"
+#include "time.h"
+#include "kernel.h"
 
-#include "dev/i2c/i2c.h"
-#include "dev/pwm/pwm.h"
+extern struct vnode rtc_node;
 
-#include "circular_buffer.h"
+struct tm myRTC;
 
-#include <xmc_gpio.h>
-#include <xmc_uart.h>
-
-extern int init_ok;
-
-#ifdef UART_MODULE
-extern struct	dev_ops uart;
-#endif
-struct 		dev_ops* devices[DRIVER_NB];
-
-enum errno_e errno;
-
-/*
- * Function: _delay
- * A simple delay function.
- *
- * The implementation of this function relies on a loop.
- *
- * Parameter:
- * len - The number of loop iteration to do before returning.
- */
-static void _delay(unsigned len)
+void RTC_update()
 {
-    while(len--);
+    dev_ioctl(&rtc_node, RTC_IOCTL_GET_TIME, &myRTC);
 }
 
-static void initPorts()
+void RTC_print()
 {
-    // LED's are on P1.0 and P1.1
-    // So make these push-pull outputs
-    P1_IOCR0 = BIT15 + BIT7;
-    //P1_OUT = 0x02;
-
-    P0_IOCR0 = BIT7;
-    P0_OUT = 0x00;
+  printf("RTC reports : %d/%d/%d %d:%d:%d!\n",
+    myRTC.tm_mday, myRTC.tm_mon, myRTC.tm_year,
+    myRTC.tm_hour, myRTC.tm_min, myRTC.tm_sec);
 }
 
-static void uart_task()
+OS_TASK(uart_task)
 {
-
-#ifdef UART_MODULE
-//    char r[128];
-    int read = 0;
-#endif
+    myRTC.tm_mday = 17;
+    myRTC.tm_mon  = 6;
+    myRTC.tm_year = 16;
+    myRTC.tm_hour = 14;
+    myRTC.tm_min  = 53;
+    myRTC.tm_sec  = 0;
+    dev_ioctl(&rtc_node, RTC_IOCTL_SET_TIME, &myRTC);
+    sys_sleep(100);
     for(;;) {
-#ifdef UART_MODULE
-      // read = scanf("%127s", r);
-      printf("Alive %d!\n\r", read);
-	    read++;
-#endif
-        P0_OUT ^= 0x1;
-        sys_sleep(1000);
-    }
-
-}
-
-static void mess_task()
-{
-
-#ifdef UART_MODULE
-    char c;
-#endif
-    for(;;) {
-#ifdef UART_MODULE
-        c = getchar();
-        printf("%c", c);
-#endif
+        mutex_lock();
+        RTC_update();
+        RTC_print();
+        mutex_unlock();
+        sys_yield();
     }
 }
 
-static void fatal()
+OS_TASK(mutex_task)
 {
-    __disable_irq();
-    P1_OUT |= 0x1;
-    __WFI();
     for(;;) {
-      __NOP();
+        mutex_lock();
+        sys_sleep(1000 * 2);
+        mutex_unlock();
+        sys_yield();
     }
 }
 
-/*
- * Function: _main
- *
- * The <_main> function is the *idle* task. It should never return.
- * It's the main entry point for the system after <init> and <c_init>.
- */
-void _main()
-{
-  /*
-   * Some drivers rely on the value of SystemCoreClock
-   * SystemCoreClockUpdate() update this value.
-   */
-  SystemCoreClockUpdate();
-
-#ifdef UART_MODULE
-    driver_map(DEV_UART, &uart);
-    struct vnode uart_node;
-    uart_node.dev_type	= UART;
-    uart_node.dev_id	= DEV_UART;
-    XMC_UART_CH_CONFIG_t uart_config1;
-    uart_node.data	= &uart_config1;
-    dev_open(&uart_node);
-#endif
-
-    if (scheduler_init() != 0)
-        fatal();
-    initPorts();
-
-    if (task_register(uart_task) != 0)
-        fatal();
-    if (task_register(mess_task) != 0)
-        fatal();
-
-    init_ok = 1;
-    __enable_irq();
-
-    for(;;) {
-      __WFI();
-      __NOP();
-    }
-}
-
-void _exit()
-{
-}
+OS_TASK_LIST = {
+  uart_task,
+  mutex_task,
+  0
+};

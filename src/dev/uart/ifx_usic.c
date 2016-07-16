@@ -37,8 +37,6 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include <xmc_gpio.h>
 #include <xmc_uart.h>
 
-#define __UNUSED(x) (void)(x)
-
 static XMC_UART_CH_CONFIG_t uart_config;
 
 uint8_t
@@ -92,17 +90,15 @@ usic_uart_open(struct vnode *vnode)
 }
 
 int
-usic_uart_close(struct vnode *vnode)
+usic_uart_close(struct vnode UNUSED *vnode)
 {
-    __UNUSED(vnode);
     XMC_UART_CH_Stop(UART_CHANNEL);
     return 0;
 }
 
 int
-usic_uart_write(struct vnode *vnode, struct uio *uio)
+usic_uart_write(struct vnode UNUSED *vnode, struct uio *uio)
 {
-    __UNUSED(vnode);
     uint8_t *ptr;
 
     ptr = uio->uio_iov->iov_base;
@@ -114,9 +110,8 @@ usic_uart_write(struct vnode *vnode, struct uio *uio)
 }
 
 int
-usic_uart_read(struct vnode *vnode, struct uio *uio)
+usic_uart_read(struct vnode UNUSED *vnode, struct uio *uio)
 {
-    __UNUSED(vnode);
     uint8_t *ptr;
     uint8_t ans;
 
@@ -130,12 +125,8 @@ usic_uart_read(struct vnode *vnode, struct uio *uio)
 }
 
 int
-usic_uart_ioctl(struct vnode *vnode, uint8_t code, void *data)
+usic_uart_ioctl(struct vnode UNUSED *vnode, uint8_t UNUSED code, void UNUSED *data)
 {
-    __UNUSED(vnode);
-    __UNUSED(code);
-    __UNUSED(data);
-
     return 0;
 }
 

@@ -38,112 +38,74 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #define driver_map(id, table) devices[id] = table
 
-/*
- * Enum: uio_rw
- *
- * UIO_READ    - Read operation.
- * UIO_WRITE   - Write operation.
+/**
  */
-enum uio_rw   { UIO_READ, UIO_WRITE };
+enum uio_rw   {
+  UIO_READ, /**< Read operation */
+  UIO_WRITE /**< Write operation */
+};
 
-/*
- * Enum: seek_whence
- *
- * SEEK_SET   - The offset will be from the beginning.
- * SEEK_CUR   - The offset will be from the current offset.
- * SEEK_END   - The offset will be from the end.
+/**
  */
-enum seek_whence   { SEEK_SET, SEEK_CUR, SEEK_END };
+enum seek_whence   {
+  SEEK_SET, /**< The offset will be from the beginning */
+  SEEK_CUR, /**< The offset will be from the current offset */
+  SEEK_END /**< The offset will be from the end*/
+};
 
-/*
- * Enum: dev_type
- *
- * I2C   - I2C Device.
- * SPI   - SPI Device.
- * UART  - UART Device.
- * PWM   - PWM Device.
- * MMC   - SD/MMC Device.
+/**
  */
-enum dev_type { I2C, SPI, UART, PWM, LCD, MMC };
+enum dev_type {
+  I2C, /**< I2C Device */
+  SPI, /**< SPI Device */
+  UART, /**< UART Device */
+  PWM, /**< PWM Device */
+  LCD, /**< LCD Device */
+  MMC, /**< MMC Device */
+  DEV_T_RTC /**< RTC Device*/
+};
 
-/*
- * Enum: dev_id
- *
- * DEV_I2C   - I2C Device.
- * DEV_SPI   - SPI Device.
- * DEV_UART  - UART Device.
- * DEV_PWM   - PWM Device.
- * DEV_MMC   - SD/MMC Device.
+/**
  */
 enum dev_id {
-  DEV_I2C = 0,
-  DEV_SPI,
-  DEV_UART,
-  DEV_PWM,
-  DEV_LCD,
-  DEV_MMC,
+  DEV_I2C, /**< I2C Device */
+  DEV_SPI, /**< SPI Device */
+  DEV_UART, /**< UART Device */
+  DEV_PWM, /**< PWM Device */
+  DEV_LCD, /**< LCD Device */
+  DEV_MMC, /**< MMC Device */
+  DEV_RTC, /**< RTC Device*/
 
   DRIVER_NB
 };
 
-/*
- * Structure: vnode
- * Vnodes are used by open/close/read/write/ioctl operations.
- *
- * Attributes:
- *   dev_type     - What kind of driver is taking care of this vnode.
- *   dev_id       - Which driver is taking care of this vnode.
- *   endpt        - Use for example by I2C or SPI to store peer address.
- *   offset       - Used if device is seekable.
- *   data         - Some device data pointer.
+/** Vnodes are used by open/close/read/write/ioctl operations.
  */
 struct vnode {
-    enum	dev_type dev_type;
-    int		dev_id;
-    int		endpt;
-    int		offset;
-    void* data;
+    enum	dev_type dev_type;/**< What kind of driver is taking care of this vnode */
+    int		dev_id;/**< Which driver is taking care of this vnode */
+    int		endpt;/**< Use for example by I2C or SPI to store peer address */
+    int		offset;/**< Used if device is seekable */
+    void* data;/**< Some device data pointer */
 };
 
-/*
- * Structure: iovec
- *
- * Attributes:
- *   iov_base     - Pointer to a buffer.
- *   iov_len      - _
+/**
  */
 struct iovec {
-    void	*iov_base;
+    void	*iov_base; /**< Pointer to a buffer */
     int		iov_len;
 };
 
-/*
- * Structure: uio
- * Used by d_read and d_write.
- *
- * Attributes:
- *   uio_iov     - Pointer to a buffer.
- *   uio_offset  - _
- *   uio_resid   - Number of element to read/write
- *   uio_rw      - Is this buffer for read/write
+/** Used by d_read and d_write.
  */
 struct uio {
-    struct  iovec *uio_iov;
+    struct  iovec *uio_iov; /**< Pointer to a buffer */
     int     uio_offset;
-    int     uio_resid;
-    enum    uio_rw uio_rw;
+    int     uio_resid; /**< Number of element to read/write */
+    enum    uio_rw uio_rw; /**< Is this buffer for read/write */
 };
 
-/*
- * Structure: dev_ops
- * Switch structure for a device driver.
- *
- * Attributes:
- *   d_open      - _
- *   d_close     - _
- *   d_read      - _
- *   d_write     - _
- *   d_ioctl     - _
+/** Switch structure for a device driver.
  */
 struct dev_ops {
     int	(*d_open) (struct vnode *vnode);

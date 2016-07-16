@@ -34,57 +34,46 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include "../gpio/gpio.h"
 #include "xmc1100.h"
 
-#define __UNUSED(x) (void)(x)
-
 int
-ccu4_pwm_open(struct vnode *vnode)
+ccu4_pwm_open(struct vnode UNUSED *vnode)
 {
-    __UNUSED(vnode);
-    
     // P0.5 -> Push Pull ALT4
-    GPIO_PIN_MUX(P0_IOCR4, GPIO_OUTPUT_PP | GPIO_OUTPUT_ALT4 , GPIO_PI5);  
-     
+    GPIO_PIN_MUX(P0_IOCR4, GPIO_OUTPUT_PP | GPIO_OUTPUT_ALT4 , GPIO_PI5);
+
     //SCU_CCUCON = 0x1;
     CCU4_GIDLC = 0x101; // Enable module and Enable timer slice 0
-    
+
     CCU4_CC40PRS   = 100; // Set period
     CCU4_CC40CRS   = 5; // Set duty cycle
     CCU4_CC40TIMER = 0;
     CCU4_GCSS = 0x1;// request Shadow transfer
-    
+
     CCU4_CC40TCSET = 1; // Start Timer
-    
+
     return 0;
 }
 
 int
-ccu4_pwm_close(struct vnode *vnode)
+ccu4_pwm_close(struct vnode UNUSED *vnode)
 {
-    __UNUSED(vnode);
     return 0;
 }
 
 int
-ccu4_pwm_write(struct vnode *vnode, struct uio *uio)
+ccu4_pwm_write(struct vnode UNUSED *vnode, struct uio UNUSED *uio)
 {
-    __UNUSED(vnode);
-    __UNUSED(uio);
     return 0;
 }
 
 int
-ccu4_pwm_read(struct vnode *vnode, struct uio *uio)
+ccu4_pwm_read(struct vnode UNUSED *vnode, struct uio UNUSED *uio)
 {
-    __UNUSED(vnode);
-    __UNUSED(uio);
     return 0;
 }
 
 int
-ccu4_pwm_ioctl(struct vnode *vnode, uint8_t code, void *data)
+ccu4_pwm_ioctl(struct vnode UNUSED *vnode, uint8_t code, void *data)
 {
-    __UNUSED(vnode);
-    
     switch (code) {
     case PWM_IOCTL_SET_DUTY:
 	CCU4_CC40CRS   = *(uint32_t*)data;
@@ -96,8 +85,8 @@ ccu4_pwm_ioctl(struct vnode *vnode, uint8_t code, void *data)
 	CCU4_GCSS = 0x1;
 	break;
     }
-    
+
     return 0;
-} 
+}
 
 struct dev_ops pwm = { ccu4_pwm_open, ccu4_pwm_close, ccu4_pwm_read, ccu4_pwm_write, ccu4_pwm_ioctl };

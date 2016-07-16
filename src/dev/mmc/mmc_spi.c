@@ -36,18 +36,16 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include <stdio.h>
 #include <string.h>
 
-#define __UNUSED(x) (void)(x)
-
 extern struct vnode spi_node;
 
 static uint8_t
 mmc_crc7(uint8_t *data,uint8_t length)
 {
-    uint8_t i, ibit, c, crc;
+    uint8_t i, ibit, crc;
 
     crc = 0x00;
     for (i = 0; i < length; i++, data++) {
-        c = *data;
+        uint8_t c = *data;
 
         for (ibit = 0; ibit < 8; ibit++) {
             crc = crc << 1;
@@ -449,10 +447,8 @@ mmc_spi_close(struct vnode *vnode)
 }
 
 int
-mmc_spi_write(struct vnode *vnode, struct uio *uio)
+mmc_spi_write(struct vnode UNUSED *vnode, struct uio *uio)
 {
-  __UNUSED(uio);
-
   struct mmc_info *mmc_info = (struct mmc_info *)vnode->data;
   int i;
   uint8_t *ptr;
@@ -516,11 +512,8 @@ mmc_spi_read(struct vnode *vnode, struct uio *uio)
 }
 
 int
-mmc_spi_ioctl(struct vnode *vnode, uint8_t code, void *data)
+mmc_spi_ioctl(struct vnode *vnode, uint8_t UNUSED code, void UNUSED *data)
 {
-    __UNUSED(code);
-    __UNUSED(data);
-
     struct mmc_info *mmc_info = (struct mmc_info *)vnode->data;
     if (mmc_info == NULL)
         return -1;

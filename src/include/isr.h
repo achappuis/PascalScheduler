@@ -33,9 +33,7 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #ifndef ISR_H
 #define ISR_H
 
-void handler_hardfault(void);
-void handler_svc(void);
-void handler_psv(void);
-void handler_systick(void);
+void SVC_C_Handler(unsigned int * svc_args);
+void HardFault_Handler(void);
 
 #endif

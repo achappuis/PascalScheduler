@@ -37,8 +37,6 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include <xmc_gpio.h>
 #include <xmc_i2c.h>
 
-#define __UNUSED(x) (void)(x)
-
 static XMC_I2C_CH_CONFIG_t i2c_config;
 
 enum usic_tdf {
@@ -98,17 +96,15 @@ usic_i2c_open(struct vnode *vnode)
 }
 
 int
-usic_i2c_close(struct vnode *vnode)
+usic_i2c_close(struct vnode UNUSED *vnode)
 {
-	__UNUSED(vnode);
     XMC_I2C_CH_Stop(I2C_CHANNEL);
     return 0;
 }
 
 int
-usic_i2c_write(struct vnode *vnode, struct uio *uio)
+usic_i2c_write(struct vnode UNUSED *vnode, struct uio *uio)
 {
-    __UNUSED(vnode);
     uint8_t *ptr;
     uint8_t timeout =0;
 
@@ -131,9 +127,8 @@ usic_i2c_write(struct vnode *vnode, struct uio *uio)
 }
 
 int
-usic_i2c_read(struct vnode *vnode, struct uio *uio)
+usic_i2c_read(struct vnode UNUSED *vnode, struct uio *uio)
 {
-	__UNUSED(vnode);
     uint8_t *ptr;
     uint8_t ans;
 

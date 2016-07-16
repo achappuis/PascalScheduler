@@ -33,6 +33,8 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #ifndef TYPES_H
 #define TYPES_H
 
+#define UNUSED __attribute__((unused))
+
 #ifndef _SIZE_T
 #define _SIZE_T
 typedef unsigned int    size_t;

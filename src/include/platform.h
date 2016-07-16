@@ -36,7 +36,7 @@ knowledge of the CeCILL-B license and that you accept its terms.
 // #ifdef TARGET_XMC
 
 #include "system_XMC1100.h"
-#include "xmc1100.h"
+#include "XMC1100.h"
 
 // #endif // TARGET_XMC
 

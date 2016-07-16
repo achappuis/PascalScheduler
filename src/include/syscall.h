@@ -33,27 +33,17 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #ifndef SYSCALL_H
 #define SYSCALL_H
 
-#define SVC_NICE  1
+enum supervisor_function_e {
+  SVC_YIELD,
+  SVC_SLEEP,
+  SVC_MUTEX_LOCK,
+  SVC_MUTEX_UNLOCK
+};
 
 
-#define __nice  asm volatile("MOV r6,%0\n"\
-    "SVC 0x0\n":: "" (SVC_NICE):"r6")
+#define __nice  asm volatile("SVC %0\n":: "" (SVC_NICE):"r6")
 
-/*
-  Variable: sleep_flag
-  A flag signaling that the scheduler was called after a sleep request.
-  
-  Design:
-  This variable may later be replaced.
-*/
-volatile int sleep_flag;
-
-/*
-  Variable: sleep_time
-  The amount of time the last scheduled task should sleep.
-*/
-volatile long int sleep_time;
-
+void sys_yield();
 void sys_sleep(long int);
 void *sys_sbrk(int);
 int  sys_open(const char*, int, int);

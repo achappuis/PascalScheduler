@@ -34,7 +34,6 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 extern struct dev_ops* devices[DRIVER_NB];
 
-#define __UNUSED(x) (void)(x)
 #define __UNCONST(a)    ((void *)(unsigned long)(const void *)(a))
 
 /*

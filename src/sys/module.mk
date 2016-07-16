@@ -1,3 +1,1 @@
-$(TARGET): src/sys/dev.o
-
-clean: src/sys/dev.o
+OBJECTS+= src/sys/dev.o

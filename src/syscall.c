@@ -34,11 +34,16 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include <sys/unistd.h>
 #include <errno.h>
 
-#include "assembly.h"
+#include "types.h"
 #include "syscall.h"
-#include "kern.h"
+#include "kernel.h"
 #include "sys/dev.h"
 #include "platform.h"
+
+void sys_yield()
+{
+    asm volatile("SVC %0\n":: "" (SVC_YIELD) :);
+}
 
 /*
   Function: sleep
@@ -46,21 +51,11 @@ knowledge of the CeCILL-B license and that you accept its terms.
   A sleep function.
   If a task call this function, it may sleep for *at least* ms milli-seconds.
 
-  Design:
-  <sleep_time> is set to ms and <sleep_flag> to 1. Then the remaining quantum
-of time for the current task is set to 0, and the task wait for sleep_flag to
-be set to 0. The scheduler *should* clear <sleep_flag>.
-
 */
 void
-sys_sleep(long int ms)
+sys_sleep(long int UNUSED ms)
 {
-  sleep_time = ms;
-  sleep_flag = 1;
-  SysTick->VAL = 0;
-  while (sleep_flag == 1) {
-    __NOP();
-  }
+  asm volatile("SVC %0\n":: "" (SVC_SLEEP) :);
 }
 
 /*
@@ -99,19 +94,14 @@ sys_sbrk(int nbytes)
 }
 
 int
-sys_open(const char *name, int flags, int mode)
+sys_open(const char UNUSED *name, int UNUSED flags, int UNUSED mode)
 {
-    __UNUSED(name);
-    __UNUSED(flags);
-    __UNUSED(mode);
-
     return -1;
 }
 
 int
-sys_close(int fd)
+sys_close(int UNUSED fd)
 {
-    __UNUSED(fd);
     return -1;
 }
 

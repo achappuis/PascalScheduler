@@ -33,41 +33,41 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include <stdint.h>
 
 #include "syscall.h"
-#include "assembly.h"
 #include "platform.h"
+#include "scheduler.h"
 
-void handler_dummy()
-__attribute__((naked));
 void
-handler_dummy()
+SVC_C_Handler(unsigned int * svc_args)
 {
-    for (;;) {
-    }
-}
+    unsigned int svc_number;
+    long int svc_sleep_time;
+    /*
+    * Stack contains:
+    * R0, R1, R2, R3, R12, LR, PC, xPSR
+    * First argument (R0) is svc_args[0]
+    */
+    svc_number = ((char *)svc_args[6])[-2];
 
-void handler_svc()
-__attribute__((naked));
-void
-handler_svc()
-{
-    int code;
-    asm(
-        "MOV %0, r6"
-        : "=r" (code)
-    );
-
-    switch(code) {
-    case SVC_NICE:
-        SysTick->VAL = 1;
+    switch(svc_number) {
+      case SVC_SLEEP:
+        svc_sleep_time = svc_args[0];
+        k_task_sleep(svc_sleep_time);
+        break;
+      case SVC_YIELD:
+        k_task_yield();
+        break;
+      case SVC_MUTEX_LOCK:
+        k_mutex_lock();
+        break;
+      case SVC_MUTEX_UNLOCK:
+        k_mutex_unlock();
         break;
     }
 }
 
 
-#ifdef DEBUG
 void unwind_stack( uint32_t *pulFaultStackAddress )
 {
-  #define __UNUSED(x) (void)(x)
     volatile uint32_t r0;
     volatile uint32_t r1;
     volatile uint32_t r2;
@@ -87,29 +87,25 @@ void unwind_stack( uint32_t *pulFaultStackAddress )
     pc = pulFaultStackAddress[ 6+4 ];
     psr = pulFaultStackAddress[ 7+4 ];
 
-    __UNUSED(r0);
-    __UNUSED(r1);
-    __UNUSED(r2);
-    __UNUSED(r3);
-    __UNUSED(r12);
-    __UNUSED(lr);
-    __UNUSED(pc);
-    __UNUSED(psr);
+    (void)(r0);
+    (void)(r1);
+    (void)(r2);
+    (void)(r3);
+    (void)(r12);
+    (void)(lr);
+    (void)(pc);
+    (void)(psr);
 
     __asm("BKPT #0\n") ;
-
 }
-#endif
 
-void handler_hardfault()
+void HardFault_Handler()
 __attribute__((naked));
 void
-handler_hardfault()
+HardFault_Handler()
 {
-
-#ifdef DEBUG
     __asm__ volatile	(
-	" movs R0, #4 \n"
+  " movs R0, #4 \n"
 	" mov R1, LR \n"
 	" tst R0, R1 \n"
 	" beq _IS_MSP \n"
@@ -122,9 +118,7 @@ handler_hardfault()
 	" bx r2\n"
 	" unwind_stack_label: .word unwind_stack\n"
     );
-#endif
 
-    P1_OUT |= 0x1;
     for(;;) {
       __WFI();
     }

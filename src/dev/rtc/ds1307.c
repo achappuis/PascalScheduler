@@ -34,8 +34,6 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include "ds1307.h"
 #include "../i2c/i2c.h"
 
-#define __UNUSED(x) (void)(x)
-
 int _BCD_decimal(int v)
 {
     return (v & 0x0F) + 10 * ((v & 0x70) >> 4);
@@ -47,44 +45,33 @@ int _decimal_BCD(int v)
 }
 
 int
-ds1307_rtc_open(struct vnode *vnode)
+ds1307_rtc_open(struct vnode UNUSED *vnode)
 {
-	__UNUSED(vnode);
 
   return 0;
 }
 
 int
-ds1307_rtc_close(struct vnode *vnode)
+ds1307_rtc_close(struct vnode UNUSED *vnode)
 {
-	__UNUSED(vnode);
-
     return 0;
 }
 
 int
-ds1307_rtc_write(struct vnode *vnode, struct uio *uio)
+ds1307_rtc_write(struct vnode UNUSED *vnode, struct uio UNUSED *uio)
 {
-    __UNUSED(vnode);
-  	__UNUSED(uio);
-
     return 0;
 }
 
 int
-ds1307_rtc_read(struct vnode *vnode, struct uio *uio)
+ds1307_rtc_read(struct vnode UNUSED *vnode, struct uio UNUSED *uio)
 {
-    __UNUSED(vnode);
-  	__UNUSED(uio);
-
     return 0;
 }
 
 int
-ds1307_rtc_ioctl(struct vnode *vnode, uint8_t code, void *data)
+ds1307_rtc_ioctl(struct vnode UNUSED *vnode, uint8_t code, void *data)
 {
-    __UNUSED(vnode);
-
     int rtc_addr = 0x68 << 1;
     char buf[8];
     struct tm * time_data = (struct tm *)data;

@@ -35,13 +35,11 @@ knowledge of the CeCILL-B license and that you accept its terms.
 
 #include <stdint.h>
 
-#include "xmc1100.h"
 #include "syscall.h"
 
 #define MAX_TASKS  8
 
-/*
- * Constant: TSB_REGISTERS
+/**
  * The number of registers to store in task descriptor <task_t>.
  *
  * See Also:
@@ -50,51 +48,41 @@ knowledge of the CeCILL-B license and that you accept its terms.
  */
 #define TSB_REGISTERS  4
 
-/*
- * Constants: Task status
- * These constants are used by the scheduler to determine the status of a task.
- *
- * TASK_CREATED   - The task as been created already.
- * TASK_READY     - The task can be scheduled.
- * TASK_RUNNING   - The task is currently running.
- * TASK_BLOCKED   - The task is waiting for a ressource.
- */
-#define TASK_CREATED   0x1
-#define TASK_READY     0x2
-#define TASK_RUNNING   0x4
-#define TASK_BLOCKED   0x8
+#define TASK_CREATED   0x1 /**< The task as been created already. */
+#define TASK_READY     0x2 /**< The task can be scheduled. */
+#define TASK_RUNNING   0x4 /**< The task is currently running. */
+#define TASK_BLOCKED   0x8 /**< The task is waiting for a ressource. */
+#define TASK_MUTEX_BLOCKED   0x10 /**< The task is waiting for a ressource. */
 
 extern const void* THREAD_STACK_TOP;
 
 int init_ok;
 
-/*
- * Structure: task_struct
- * A task descriptor.
+/** A task descriptor.
  * This task desciptor does not contain PC, because it is stacked before entering the handler.
- * 
- * Attributes:
- *   state        - The current state of the task.
- *   sp           - Address of the top of the task stack.
- *   registers    - Array containing saved registers.
- *   sleep_until  - Time moment when the task can be switched from <TASK_BLOCKED>
- * 			to <TASK_READY>.
- *   wait_for     - If 0 the task has the <TASK_READY> state or sleep_until is set.
- * 			Else the task is in <TASK_BLOCKED> state and is waiting 
- * 			for a signal from an upper half handler or another task.
  */
 struct task_struct {
-    uint32_t        state;
-    void            *sp;
-    uint32_t        registers[TSB_REGISTERS];
-    long int        sleep_until;
-    uint32_t        signal_flag;
-};
+    void            *sp; /**< Address of the top of the task stack. */
+    uint32_t        registers[TSB_REGISTERS]; /**< Array containing saved registers. */
+    uint32_t        state; /**< The current state of the task. */
+    long int        sleep_until; /**< Time moment when the task can be switched from <TASK_BLOCKED> to <TASK_READY>.*/
+    uint32_t        signal_flag; /**< If 0 the task has the <TASK_READY> state or sleep_until is set.
+    * 			Else the task is in <TASK_BLOCKED> state and is waiting
+    * 			for a signal from an upper half handler or another task.*/
+}; // 4+4+4+4+4*4 = 32bytes
 
 
-void scheduler() __attribute__((naked));
-
+void scheduler();
 int scheduler_init();
-int task_register(void(*)(void));
+
+void k_task_update_state();
+int  k_task_peek_next(int ctid);
+void k_task_sleep(long int stime);
+void k_task_yield();
+int  k_task_register(void(*)(void));
+
+void k_mutex_lock();
+void k_mutex_unlock();
+
 
 #endif

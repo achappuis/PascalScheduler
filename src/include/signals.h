@@ -34,13 +34,13 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #define SIGNALS_H
 /*
  * Topic: Signals
- * Signals are convenient objects in asSch.
- * 
+ * Signals are convenient objects in PascalScheduler.
+ *
  * They can be used for synchronisation, or to implement upper-half/bottom-half
  * interrupt handler.
- * 
+ *
  * Synchronisation example:
- * In the following code, the two LEDs are blinking at 1Hz. 
+ * In the following code, the two LEDs are blinking at 1Hz.
  * (start code)
  * static void led1_task()
  * {
@@ -49,9 +49,9 @@ knowledge of the CeCILL-B license and that you accept its terms.
  *         sleep(1000);
  *         signal_raise(SIGNALS_TASK | (SIGNALS_TASK + 1));
  *     }
- * 
+ *
  * }
- * 
+ *
  * static void led2_task()
  * {
  *     for(;;) {
@@ -71,17 +71,12 @@ knowledge of the CeCILL-B license and that you accept its terms.
 /*
  * Constants: Signals IDs
  * These constants are used by the scheduler to determine if a task in <TASK_BLOCKED>
- * status can be switched to <TASK_READY>. 
- *
- * SIGNALS_RTC    - Wait for an RTC alarm.
- * SIGNALS_ADC    - Wait for ADC to finish conversion.
- * SIGNALS_SERIAL - Wait for serial interrupt.
- * SIGNALS_TASK   - Wait for synchronisation from another task.
+ * status can be switched to <TASK_READY>.
  */
-#define SIGNALS_RTC	1
-#define SIGNALS_ADC	2
-#define SIGNALS_SERIAL	4
-#define SIGNALS_TASK	256
+#define SIGNALS_RTC	1      /**< Wait for an RTC alarm */
+#define SIGNALS_ADC	2      /**< Wait for ADC to finish conversion */
+#define SIGNALS_SERIAL	4  /**< Wait for serial interrupt */
+#define SIGNALS_TASK	256  /**< Wait for synchronisation from another task */
 
 /*
   Macro: TASK_SYNCHONISATION
@@ -101,7 +96,7 @@ knowledge of the CeCILL-B license and that you accept its terms.
 /*
   Variable: signal_flag
   A flag signaling that the scheduler was called after a <signal_raise>.
-  
+
   Design:
   This variable may later be replaced.
 */

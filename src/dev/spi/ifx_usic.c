@@ -37,8 +37,6 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include <xmc_gpio.h>
 #include <xmc_spi.h>
 
-#define __UNUSED(x) (void)(x)
-
 static XMC_SPI_CH_CONFIG_t spi_config;
 
 int
@@ -128,17 +126,15 @@ usic_spi_open(struct vnode *vnode)
 }
 
 int
-usic_spi_close(struct vnode *vnode)
+usic_spi_close(struct vnode UNUSED *vnode)
 {
-    __UNUSED(vnode);
     XMC_SPI_CH_Stop(XMC_SPI0_CH0);
     return 0;
 }
 
 int
-usic_spi_write(struct vnode *vnode, struct uio *uio)
+usic_spi_write(struct vnode UNUSED *vnode, struct uio *uio)
 {
-  __UNUSED(vnode);
   uint8_t *ptr;
 
   ptr = uio->uio_iov->iov_base;
@@ -150,9 +146,8 @@ usic_spi_write(struct vnode *vnode, struct uio *uio)
 }
 
 int
-usic_spi_read(struct vnode *vnode, struct uio *uio)
+usic_spi_read(struct vnode UNUSED *vnode, struct uio *uio)
 {
-  __UNUSED(vnode);
   uint8_t *ptr;
   uint8_t ans;
 
@@ -166,10 +161,8 @@ usic_spi_read(struct vnode *vnode, struct uio *uio)
 }
 
 int
-usic_spi_ioctl(struct vnode *vnode, uint8_t code, void *data)
+usic_spi_ioctl(struct vnode UNUSED *vnode, uint8_t code, void *data)
 {
-    __UNUSED(vnode);
-
     switch (code) {
     case SPI_IOCTL_ENABLE_SLAVE:
         return _usic_spi_enable_slave(*((int*)data));
