@@ -1,44 +1,50 @@
 include Config.inc
 include Makefile.inc
 
+ifndef VERBOSE
+S=@
+endif
+
 TARGET=bin/main.elf
 all:$(TARGET)
 
 build: $(TARGET)
 
-include src/arch/arm/XMC/module.mk
+include src/module.mk
+include src/arch/arm/soc/XMC1x/module.mk
 # include src/arch/arm/STM32F4/module.mk
 
-$(TARGET):
+$(TARGET): $(OBJECTS)
 	@mkdir -p bin/
-	@$(CC) $^ $(LIBS) $(INCDIRS) -T $(LD_SCRIPT) -nostartfiles -fno-builtin -nostdlib -o $(TARGET)
+	${S}$(CC) $^ $(LIBS) $(INCDIRS) -T $(LD_SCRIPT) -nostartfiles -fno-builtin -nostdlib -o $(TARGET)
 	@echo "\nDone."
 
 %.o: %.c
-	@$(CC) $(CCFLAGS) $(INCDIRS) -c $< -o $@
+	${S}$(CC) $(CCFLAGS) $(INCDIRS) -c $< -o $@
 	@echo "Compiled "$<" successfully!"
 
 %.o: %.s
-	@$(CC) $(CCFLAGS) $(INCDIRS) -c $< -o $@
+	${S}$(CC) $(CCFLAGS) $(INCDIRS) -c $< -o $@
 	@echo "Compiled "$<" successfully!"
 
 %.o: %.S
-	@$(CC) $(CCFLAGS) $(INCDIRS) -c $< -o $@
+	${S}$(CC) $(CCFLAGS) $(INCDIRS) -c $< -o $@
 	@echo "Compiled "$<" successfully!"
 
-.PHONY: doc clean
+.PHONY: check doc clean
+
+check:
+	cppcheck --enable=all $(INCDIRS) -DXMC1100_T038x0064 -DTARGET_XMC `find src -name "*.c"`
 
 clean:
-	@rm $^
+	@rm -f $(OBJECTS)
 
 doc:
 	@echo "\nGenerating documentation"
 	@mkdir -p doc/natural/
 	@naturaldocs -i src/ -o HTML doc/natural/ -p doc/
 
-$(TARGET): vendors/pff3/src/pff.o \
-	vendors/pff3/src/diskio.o
-clean:  vendors/pff3/src/pff.o \
-	vendors/pff3/src/diskio.o
-
-include src/module.mk
+#$(TARGET): vendors/pff3/src/pff.o \
+#	vendors/pff3/src/diskio.o
+#clean:  vendors/pff3/src/pff.o \
+#	vendors/pff3/src/diskio.o

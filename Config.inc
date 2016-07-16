@@ -1,9 +1,15 @@
-XMCLIB = vendors/XMC_Peripheral_Library_v1.0.0/
+#XMCLIB_BASE = vendors/XMC_Peripheral_Library_v1.0.0/
+XMCLIB_BASE = vendors/XMC_Peripheral_Library_v2.1.2/
+XMCLIB = $(XMCLIB_BASE)XMCLib/
+XMCLIB_CMSIS = $(XMCLIB_BASE)CMSIS/
+
+
+MCU  = XMC
 
 GPIO = NO_IFX_GPIO_
 PWM  = NO_IFX_CCU4
 
-I2C       = NO_IFX_USIC
+I2C       = IFX_USIC
 I2C_USIC  = CH0
 
 UART      = IFX_USIC
@@ -13,3 +19,5 @@ UART_BAUD = 19200
 LCD     = NO
 LCD_BUS = I2C
 LCD_ADD = 0x40
+
+RTC     = DS1307
